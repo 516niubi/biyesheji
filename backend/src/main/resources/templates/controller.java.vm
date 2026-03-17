@@ -1,0 +1,90 @@
+package ${package.Controller};
+
+import com.example.backend.common.model.PageResult;
+import com.example.backend.common.result.BaseResponse;
+import com.example.backend.common.result.Result;
+import io.swagger.annotations.ApiOperation;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+import java.util.List;
+
+import ${package.Service}.${table.serviceName};
+import ${package.Entity}.${entity};
+
+#if(${restControllerStyle})
+import org.springframework.web.bind.annotation.RestController;
+#else
+import org.springframework.stereotype.Controller;
+#end
+#if(${superControllerClassPackage})
+import ${superControllerClassPackage};
+#end
+
+/**
+ * @Description $!{table.comment}控制层
+ * @Version 1.0
+ */
+#if(${restControllerStyle})
+@RestController
+#else
+@Controller
+#end
+@RequestMapping("/${table.entityPath}")
+#if(${kotlin})
+class ${table.controllerName}#if(${superControllerClass}) : ${superControllerClass}()#end
+
+#else
+#if(${superControllerClass})
+public class ${table.controllerName} extends ${superControllerClass} {
+#else
+public class ${table.controllerName} {
+#end
+
+    @Resource
+    private ${table.serviceName} ${table.entityPath}Service;
+
+    @PostMapping("/add")
+    public BaseResponse<Integer> add(@RequestBody ${entity} request) {
+        Integer res = ${table.entityPath}Service.add(request);
+        return Result.success(res);
+    }
+
+    @PostMapping("/batchAdd")
+    public BaseResponse<Boolean> batchAdd(@RequestBody List<${entity}> request) {
+        Boolean res = ${table.entityPath}Service.batchAdd(request);
+        return Result.success(res);
+    }
+
+    @GetMapping("/del")
+    public BaseResponse<Boolean> del(@RequestParam Integer id) {
+        Boolean res = ${table.entityPath}Service.del(id);
+        return Result.success(res);
+    }
+
+    @PostMapping("/edit")
+    private BaseResponse<Boolean> edit(@RequestParam Integer id, @RequestBody ${entity} request) {
+        Boolean res = ${table.entityPath}Service.edit(id, request);
+        return Result.success(res);
+    }
+
+    @GetMapping("/page")
+    public BaseResponse<PageResult<List<${entity}>>> page(@RequestParam Integer pageNum, @RequestParam Integer pageSize) {
+        PageResult<List<${entity}>> res = ${table.entityPath}Service.queryPage(pageNum, pageSize);
+        return Result.success(res);
+    }
+
+    @GetMapping("/list")
+    public BaseResponse<List<${entity}>> all() {
+        List<${entity}> res = ${table.entityPath}Service.getAll();
+        return Result.success(res);
+    }
+
+    @GetMapping("/getById")
+    public BaseResponse<${entity}> getById(@RequestParam Integer id) {
+        ${entity} res = ${table.entityPath}Service.getByIdDetail(id);
+        return Result.success(res);
+    }
+}
+
+#end

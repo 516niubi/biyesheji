@@ -1,0 +1,137 @@
+package ${package.ServiceImpl};
+
+import ${package.Entity}.${entity};
+import ${package.Mapper}.${table.mapperName};
+import ${package.Service}.${table.serviceName};
+import ${superServiceImplClassPackage};
+import org.springframework.stereotype.Service;
+import cn.hutool.core.text.CharSequenceUtil;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.example.backend.common.model.PageResult;
+import com.example.backend.exception.BusinessException;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import javax.annotation.Resource;
+import com.example.backend.common.enums.CodeEnum;
+
+import java.util.List;
+
+/**
+ * <p>
+ * $!{table.comment} 服务实现类
+ * </p>
+ *
+ * @author ${author}
+ * @since ${date}
+ */
+@Service
+#if(${kotlin})
+open class ${table.serviceImplName} : ${superServiceImplClass}<${table.mapperName}, ${entity}>(), ${table.serviceName} {
+
+}
+#else
+public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.mapperName}, ${entity}> implements ${table.serviceName} {
+        @Resource
+        private ${entity}Mapper ${table.entityPath}Mapper;
+
+        /**
+         * 新增
+         *
+         * @param request
+         * @return
+         */
+        @Override
+        public Integer add(${entity} request) {
+            ${entity} saveData = new ${entity}();
+            BeanUtils.copyProperties(request, saveData);
+            ${table.entityPath}Mapper.insert(saveData);
+            return saveData.getId();
+        }
+
+        /**
+         * 批量新增
+         *
+         * @param request
+         * @return
+         */
+        @Override
+        public Boolean batchAdd(List<${entity}> request) {
+            return saveBatch(request);
+        }
+
+        /**
+         * 删除
+         *
+         * @param id
+         * @return
+         */
+        @Override
+        public Boolean del(Integer id) {
+            if (id == null || id <= 0) {
+                throw new BusinessException(CodeEnum.PARAMS_ERROR);
+            }
+            return removeById(id);
+        }
+
+        /**
+         * 编辑
+         *
+         * @param id
+         * @param request
+         * @return
+         */
+        @Override
+        public Boolean edit(Integer id, ${entity} request) {
+            ${entity} findData =  ${table.entityPath}Mapper.selectById(id);
+            if (findData == null) {
+                throw new BusinessException(CodeEnum.SYSTEM_ERROR);
+            }
+            BeanUtils.copyProperties(request, findData);
+            return updateById(findData);
+        }
+
+        /**
+         * 分页查询
+         *
+         * @param request
+         * @return
+         */
+        @Override
+        public PageResult<List<${entity}>> queryPage(Integer pageNum, Integer pageSize) {
+            QueryWrapper<${entity}> queryWrapper = new QueryWrapper<>();
+
+            Page<${entity}> page = page(new Page<>(pageNum, pageSize), queryWrapper);
+            // 返回结果
+            PageResult<List<${entity}>> pageResult = new PageResult<>();
+            pageResult.setTotal(page.getTotal());
+            pageResult.setSize(page.getSize());
+            pageResult.setCurrent(page.getCurrent());
+            pageResult.setRecords(page.getRecords());
+            return pageResult;
+        }
+
+        /**
+         * 查询全部
+         *
+         * @return
+         */
+        @Override
+        public List<${entity}> getAll() {
+            return list();
+        }
+
+
+        /**
+         * 根据id查询
+         *
+         * @param id
+         * @return
+         */
+        @Override
+        public ${entity} getByIdDetail(Integer id) {
+            return getById(id);
+        }
+}
+#end

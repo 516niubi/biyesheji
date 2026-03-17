@@ -1,0 +1,22 @@
+package com.example.backend.common.enums;
+
+/**
+ * @Author caiya
+ * @Description 要排除登录校验的接口地址枚举类
+ * @Version 1.0
+ */
+public enum ExcludePathEnum {
+    TEMP_TOKEN("/tempToken", "获取临时token的接口"),
+    VERIFY_IMG("/getVerifyImg", "获取验证码图片的接口"),
+    LOGIN("/login", "登录接口"),
+    REGISTER("/register", "登录接口"),
+    LOGOUT("/logout", "注销登录接口");
+
+    private final String path;
+    private final String remark;
+
+    ExcludePathEnum(String path, String remark) {
+        this.path = path;
+        this.remark = remark;
+    }
+}

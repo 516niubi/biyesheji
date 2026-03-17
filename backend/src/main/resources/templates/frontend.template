@@ -1,0 +1,175 @@
+<script setup lang="ts">
+import http from "@/utils/http/http.ts";
+import {Plus} from "@element-plus/icons-vue";
+import {ElMessage} from "element-plus";
+
+const initParams = {
+  pageNum: 1,
+  pageSize: 10
+}
+// 搜索条件
+const params = ref({...initParams})
+// 初始参数
+const initForm = {
+  {form}
+}
+// 表单数据
+const form = ref({...initForm})
+// 表格数据
+const tableData = ref([]);
+// 表格数据总数
+const total = ref(0);
+// 控制弹窗显示
+const visible = ref(false);
+const isEdit = computed(() => {
+  return form.value.id > 0;
+})
+const dialogTitle = computed(() => {
+  return isEdit.value ? "编辑" : "新增";
+})
+
+// 获取表格数据
+const getTableData = async () => {
+  const res = await http.get(`/{lowerEntityName}/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}`)
+  if (res.code === 200) {
+    tableData.value = res.data.records;
+    total.value = res.data.total;
+  }
+}
+
+// 搜索
+const handleSearch = async () => {
+  await getTableData();
+}
+
+// 重置
+const handleReset = () => {
+  params.value = {...initParams};
+  getTableData();
+}
+
+// 新增
+const handleAdd = () => {
+  form.value = {...initForm};
+  visible.value = true;
+}
+
+// 编辑
+const handleEdit = (row: any) => {
+  form.value = {...row};
+  visible.value = true;
+}
+
+// 删除
+const delRow = async (id: number) => {
+  const res = await http.get(`/{lowerEntityName}/del?id=${id}`)
+  if (res.code === 200) {
+    ElMessage.success("删除成功");
+    await getTableData();
+  } else {
+    ElMessage.error("删除失败");
+  }
+}
+
+// 确认按钮
+const submit = async () => {
+  if (isEdit.value) {
+    const res = await http.post(`/{lowerEntityName}/edit?id=${form.value.id}`, form.value)
+    if (res.code === 200) {
+      ElMessage.success("编辑成功");
+      visible.value = false;
+      await getTableData();
+    } else {
+      ElMessage.error("编辑失败");
+    }
+  } else {
+    const res = await http.post(`/{lowerEntityName}/add`, form.value)
+    if (res.code === 200) {
+      ElMessage.success("新增成功");
+      visible.value = false;
+      await getTableData();
+    } else {
+      ElMessage.error("新增失败");
+    }
+  }
+}
+
+const handleSizeChange = (val: number) => {
+  params.value.pageSize = val;
+  getTableData();
+}
+const handleCurrentChange = (val: number) => {
+  params.value.pageNum = val;
+  getTableData();
+}
+
+onMounted(async () => {
+  await getTableData();
+})
+</script>
+
+<template>
+  <div>
+    <main>
+      <div class="flex op-box">
+        <el-button :icon="Plus" type="primary" @click="handleAdd">新增</el-button>
+      </div>
+      <!-- 表格 -->
+      <el-table :data="tableData" height="500" border show-overflow-tooltip>
+        {tableColumn}
+        <el-table-column label="操作">
+          <template #default="scope">
+            <el-button type="primary" link @click="handleEdit(scope.row)">编辑</el-button>
+            <el-popconfirm title="您确定要删除吗?" @confirm="delRow(scope.row.id)">
+              <template #reference>
+                <el-button type="danger" link>删除</el-button>
+              </template>
+            </el-popconfirm>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-pagination
+          style="margin-top: 10px; display: flex; justify-content: end;"
+          v-model:current-page="params.pageNum"
+          v-model:page-size="params.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="sizes, prev, pager, next"
+          :total="total"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+      />
+    </main>
+    <el-dialog
+        v-model="visible"
+        :title="dialogTitle"
+        width="600"
+    >
+      <el-form :model="form" label-width="120">
+        {formItem}
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="submit">
+            确认
+          </el-button>
+          <el-button @click="visible = false">取消</el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </div>
+</template>
+
+<style scoped>
+.label-text {
+  color: #606266;
+  width: 80px;
+}
+
+.form-item {
+  margin-right: 20px;
+}
+
+.op-box {
+  margin: 10px 0;
+}
+</style>
