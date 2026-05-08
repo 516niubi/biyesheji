@@ -1,6 +1,7 @@
 package com.example.backend.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -37,6 +38,17 @@ public class Activity {
     private Integer status;
     
     private Integer viewCount;
+
+    /** 创建人后台账号ID（传承人） */
+    private Integer creatorId;
+
+    /** 发布人展示名（非表字段，接口填充） */
+    @TableField(exist = false)
+    private String publisherName;
+
+    /** 发布人头像路径（非表字段） */
+    @TableField(exist = false)
+    private String publisherAvatar;
     
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createTime;

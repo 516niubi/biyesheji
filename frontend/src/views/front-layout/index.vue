@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import Header from "./Header.vue";
-import Footer from "./Footer.vue";
 
 // 页面加载状态
 const loading = ref(true);
@@ -35,8 +34,6 @@ onMounted(() => {
         <router-view />
       </main>
 
-      <!-- 底部 -->
-      <Footer />
     </div>
   </div>
 </template>
@@ -87,7 +84,7 @@ onMounted(() => {
 
     .main-content {
       flex: 1;
-      min-height: calc(100vh - 140px); // 减去头部和底部的大概高度
+      min-height: calc(100vh - 80px);
       background: #f8f9fa;
     }
   }
@@ -138,7 +135,7 @@ onMounted(() => {
   .front-layout {
     .layout-container {
       .main-content {
-        min-height: calc(100vh - 120px);
+        min-height: calc(100vh - 80px);
       }
     }
   }
@@ -148,7 +145,7 @@ onMounted(() => {
   .front-layout {
     .layout-container {
       .main-content {
-        min-height: calc(100vh - 100px);
+        min-height: calc(100vh - 80px);
       }
     }
   }

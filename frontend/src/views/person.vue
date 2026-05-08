@@ -10,12 +10,14 @@ import http from "../utils/http";
 
 const userStore = useUserStore();
 const form = ref({
+  id: null,
   username: "",
   nickName: "",
   age: 18,
   gender: 0,
   avatar: "",
   profile: "",
+  phone: "",
   roleFlag: "",
 });
 
@@ -31,9 +33,13 @@ const imageUrl = ref("");
 // 获取用户信息
 const getUserInfo = async () => {
   try {
-    const res = await http.get("/admin/current");
+    const isInh = userStore.roleFlag === "inheritor";
+    const res = isInh
+      ? await http.get("/inheritor/current")
+      : await http.get("/admin/current");
     if (res.code === 200) {
       form.value = JSON.parse(JSON.stringify(res.data));
+      form.value.roleFlag = userStore.roleFlag;
       imageUrl.value = form.value.avatar ? getImageUrl(form.value.avatar) : "";
       userStore.userInfo = res.data;
     }
@@ -45,7 +51,16 @@ const getUserInfo = async () => {
 // 保存用户信息
 const saveUserInfo = async () => {
   try {
-    const res = await http.post("/admin/edit", form.value);
+    const isInh = userStore.roleFlag === "inheritor";
+    const res = isInh
+      ? await http.post("/inheritor/profile", {
+          nickName: form.value.nickName,
+          gender: form.value.gender,
+          age: form.value.age,
+          avatar: form.value.avatar,
+          profile: form.value.profile,
+        })
+      : await http.post("/admin/edit", form.value);
     if (res.code === 200) {
       ElMessage.success("保存成功");
       await getUserInfo();
@@ -115,6 +130,10 @@ onMounted(() => {
     <el-form :model="form" label-width="120px" class="form-section">
       <el-form-item label="账号">
         <el-input v-model="form.username" disabled />
+      </el-form-item>
+      <el-form-item v-if="userStore.roleFlag === 'inheritor'" label="手机号">
+        <el-input v-model="form.phone" disabled />
+        <span class="field-tip">手机号如需修改请联系管理员</span>
       </el-form-item>
       <el-form-item label="昵称">
         <el-input v-model="form.nickName" placeholder="请输入昵称" />
@@ -226,6 +245,13 @@ onMounted(() => {
 
   .button-section {
     text-align: center;
+  }
+
+  .field-tip {
+    display: block;
+    font-size: 12px;
+    color: #909399;
+    margin-top: 4px;
   }
 }
 </style>

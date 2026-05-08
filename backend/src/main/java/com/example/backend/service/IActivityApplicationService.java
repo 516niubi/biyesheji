@@ -38,9 +38,13 @@ public interface IActivityApplicationService extends IService<ActivityApplicatio
     Boolean edit(Integer id, ActivityApplication activityApplication);
 
     /**
-     * 分页条件查询活动报名
+     * @param activityCreatorAdminId 非空时仅查询属于该创建人活动的报名记录
      */
-    PageResult<List<ActivityApplicationVO>> queryPage(Integer pageNum, Integer pageSize, String realName, String phone, Integer status);
+    PageResult<List<ActivityApplicationVO>> queryPage(Integer pageNum, Integer pageSize, String realName, String phone, Integer status, Integer activityCreatorAdminId);
+
+    default PageResult<List<ActivityApplicationVO>> queryPage(Integer pageNum, Integer pageSize, String realName, String phone, Integer status) {
+        return queryPage(pageNum, pageSize, realName, phone, status, null);
+    }
 
     /**
      * 查询全部活动报名

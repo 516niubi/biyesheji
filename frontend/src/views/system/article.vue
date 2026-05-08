@@ -76,7 +76,7 @@ const dialogTitle = computed(() => {
 
 // 获取表格数据
 const getTableData = async () => {
-  let url = `/article/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}`;
+  let url = `/article/manage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}`;
   if (params.value.title) url += `&title=${params.value.title}`;
   if (params.value.intro) url += `&intro=${params.value.intro}`;
   
@@ -179,6 +179,23 @@ const handleSelectionChange = (selection) => {
 
 // 确认按钮
 const submit = async () => {
+  if (!form.value.title?.trim()) {
+    ElMessage.warning("请填写资讯标题");
+    return;
+  }
+  if (!form.value.intro?.trim()) {
+    ElMessage.warning("请填写资讯简介");
+    return;
+  }
+  if (!form.value.coverUrl) {
+    ElMessage.warning("请上传封面图片");
+    return;
+  }
+  if (!form.value.content?.trim()) {
+    ElMessage.warning("请填写资讯内容");
+    return;
+  }
+
   if (isEdit.value) {
     const res = await http.post(`/article/edit?id=${form.value.id}`, form.value);
     if (res.code === 200) {

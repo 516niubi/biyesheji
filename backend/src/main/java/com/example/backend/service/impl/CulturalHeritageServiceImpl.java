@@ -19,6 +19,10 @@ import org.springframework.beans.BeanUtils;
 import javax.annotation.Resource;
 
 import com.example.backend.common.enums.CodeEnum;
+import com.example.backend.entity.Inheritor;
+import com.example.backend.utils.BackendAuthHelper;
+import com.example.backend.utils.PublisherNameResolver;
+import com.example.backend.utils.PublisherNameResolver.PublisherView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +44,9 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
     @Resource
     private IchTypeMapper ichTypeMapper;
 
+    @Resource
+    private PublisherNameResolver publisherNameResolver;
+
     /**
      * 新增
      *
@@ -48,6 +55,13 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
      */
     @Override
     public Integer add(CulturalHeritage request) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        if (inh != null) {
+            request.setCreatorId(inh.getId());
+        } else {
+            request.setCreatorId(null);
+        }
         culturalHeritageMapper.insert(request);
         return request.getId();
     }
@@ -60,6 +74,15 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
      */
     @Override
     public Boolean batchAdd(List<CulturalHeritage> request) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        for (CulturalHeritage ch : request) {
+            if (inh != null) {
+                ch.setCreatorId(inh.getId());
+            } else {
+                ch.setCreatorId(null);
+            }
+        }
         return saveBatch(request);
     }
 
@@ -71,6 +94,12 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
      */
     @Override
     public Boolean del(Integer id) {
+        CulturalHeritage row = culturalHeritageMapper.selectById(id);
+        if (row == null) {
+            throw new BusinessException(CodeEnum.PARAMS_ERROR, "数据不存在");
+        }
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertHeritageOwned(row);
         return culturalHeritageMapper.deleteById(id) > 0;
     }
 
@@ -82,6 +111,13 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
      */
     @Override
     public Boolean batchDel(List<Integer> ids) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        for (Integer id : ids) {
+            CulturalHeritage row = culturalHeritageMapper.selectById(id);
+            if (row != null) {
+                assertHeritageOwned(row);
+            }
+        }
         return culturalHeritageMapper.deleteBatchIds(ids) > 0;
     }
 
@@ -98,7 +134,10 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
         if (culturalHeritage == null) {
             throw new BusinessException(CodeEnum.PARAMS_ERROR, "数据不存在");
         }
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertHeritageOwned(culturalHeritage);
         request.setId(id);
+        request.setCreatorId(culturalHeritage.getCreatorId());
         return culturalHeritageMapper.updateById(request) > 0;
     }
 
@@ -107,11 +146,27 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
      *
      * @return
      */
+    private void assertHeritageOwned(CulturalHeritage row) {
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        if (inh == null) {
+            return;
+        }
+        if (row.getCreatorId() == null || !row.getCreatorId().equals(inh.getId())) {
+            throw new BusinessException(CodeEnum.AUTH_ERROR, "仅能管理本人发布的非遗文物");
+        }
+    }
+
     @Override
-    public PageResult<List<CulturalHeritageVO>> queryPage(Integer pageNum, Integer pageSize, String name) {
+    public PageResult<List<CulturalHeritageVO>> queryPage(Integer pageNum, Integer pageSize, String name, Integer creatorIdFilter, Integer categoryId) {
         QueryWrapper<CulturalHeritage> queryWrapper = new QueryWrapper<>();
         if (CharSequenceUtil.isNotBlank(name)) {
             queryWrapper.like("name", name);
+        }
+        if (creatorIdFilter != null) {
+            queryWrapper.eq("creator_id", creatorIdFilter);
+        }
+        if (categoryId != null) {
+            queryWrapper.eq("category_id", categoryId);
         }
         queryWrapper.orderByDesc("create_time");
         Page<CulturalHeritage> page = new Page<>(pageNum, pageSize);
@@ -150,13 +205,16 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
      */
     @Override
     public CulturalHeritage getByIdDetail(Integer id) {
-        // 增加浏览量
         CulturalHeritage culturalHeritage = culturalHeritageMapper.selectById(id);
         if (culturalHeritage != null) {
-            culturalHeritage.setViewCount(culturalHeritage.getViewCount() + 1);
+            int vc = culturalHeritage.getViewCount() == null ? 0 : culturalHeritage.getViewCount();
+            culturalHeritage.setViewCount(vc + 1);
             culturalHeritageMapper.updateById(culturalHeritage);
+            PublisherView pv = publisherNameResolver.resolveView(culturalHeritage.getCreatorId());
+            culturalHeritage.setPublisherName(pv.getName());
+            culturalHeritage.setPublisherAvatar(pv.getAvatar());
         }
-        return culturalHeritageMapper.selectById(id);
+        return culturalHeritage;
     }
 
     /**
@@ -214,6 +272,10 @@ public class CulturalHeritageServiceImpl extends ServiceImpl<CulturalHeritageMap
                 culturalHeritageVO.setCategoryName(ichType.getName());
             }
         }
+
+        PublisherView pv = publisherNameResolver.resolveView(culturalHeritage.getCreatorId());
+        culturalHeritageVO.setPublisherName(pv.getName());
+        culturalHeritageVO.setPublisherAvatar(pv.getAvatar());
         
         return culturalHeritageVO;
     }

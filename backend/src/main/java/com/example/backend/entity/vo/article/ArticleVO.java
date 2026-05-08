@@ -34,6 +34,15 @@ public class ArticleVO {
     @ApiModelProperty("浏览次数")
     private Integer viewCount;
 
+    @ApiModelProperty("创建人后台账号ID")
+    private Integer creatorId;
+
+    @ApiModelProperty("发布人展示名")
+    private String publisherName;
+
+    @ApiModelProperty("发布人头像路径")
+    private String publisherAvatar;
+
     @ApiModelProperty("封面图片URL")
     private String coverUrl;
 

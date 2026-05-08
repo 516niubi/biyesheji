@@ -39,7 +39,7 @@ const contactInfo = ref({
                 <li><a href="/front">首页</a></li>
                 <li><a href="/front/heritage">非遗项目</a></li>
                 <li><a href="/front/activity">活动中心</a></li>
-                <li><a href="/front/inheritor">传承人</a></li>
+                <li><a href="/front/inheritors">传承人</a></li>
                 <li><a href="/front/news">新闻资讯</a></li>
                 <li><a href="/front/about">关于我们</a></li>
               </ul>

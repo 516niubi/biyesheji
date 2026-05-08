@@ -6,6 +6,7 @@ import com.example.backend.common.result.Result;
 import com.example.backend.entity.ActivityApplication;
 import com.example.backend.entity.vo.activityApplication.ActivityApplicationVO;
 import com.example.backend.service.IActivityApplicationService;
+import com.example.backend.utils.BackendAuthHelper;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.web.bind.annotation.*;
 
@@ -62,7 +63,20 @@ public class ActivityApplicationController {
             @RequestParam(required = false) String phone,
             @RequestParam(required = false) Integer status
     ) {
-        PageResult<List<ActivityApplicationVO>> res = activityApplicationService.queryPage(pageNum, pageSize, realName, phone, status);
+        PageResult<List<ActivityApplicationVO>> res = activityApplicationService.queryPage(pageNum, pageSize, realName, phone, status, null);
+        return Result.success(res);
+    }
+
+    @GetMapping("/manage/page")
+    public BaseResponse<PageResult<List<ActivityApplicationVO>>> managePage(
+            @RequestParam Integer pageNum,
+            @RequestParam Integer pageSize,
+            @RequestParam(required = false) String realName,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) Integer status
+    ) {
+        Integer scope = BackendAuthHelper.inheritorCreatorScopeOrNull();
+        PageResult<List<ActivityApplicationVO>> res = activityApplicationService.queryPage(pageNum, pageSize, realName, phone, status, scope);
         return Result.success(res);
     }
 

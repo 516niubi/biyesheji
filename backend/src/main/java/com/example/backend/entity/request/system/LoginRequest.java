@@ -12,4 +12,8 @@ public class LoginRequest {
     private String username;
     private String password;
     private String role;
+    /** 与 /captcha 返回的 key 对应 */
+    private String captchaKey;
+    /** 用户输入的验证码 */
+    private String captcha;
 }

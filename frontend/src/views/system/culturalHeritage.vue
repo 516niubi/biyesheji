@@ -94,7 +94,7 @@ const getCategoryList = async () => {
 // 获取表格数据
 const getTableData = async () => {
   const res = await http.get(
-    `/culturalHeritage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&name=${params.value.name}`
+    `/culturalHeritage/manage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&name=${params.value.name}`
   );
   if (res.code === 200) {
     tableData.value = res.data.records;
@@ -161,6 +161,27 @@ const handleSelectionChange = (selection) => {
 
 // 确认按钮
 const submit = async () => {
+  if (!form.value.name?.trim()) {
+    ElMessage.warning("请填写名称");
+    return;
+  }
+  if (!form.value.categoryId) {
+    ElMessage.warning("请选择分类");
+    return;
+  }
+  if (!form.value.coverImage) {
+    ElMessage.warning("请上传封面图片");
+    return;
+  }
+  if (!form.value.intro?.trim()) {
+    ElMessage.warning("请填写简介");
+    return;
+  }
+  if (!form.value.description?.trim()) {
+    ElMessage.warning("请填写详细描述");
+    return;
+  }
+
   if (isEdit.value) {
     const res = await http.post(`/culturalHeritage/edit?id=${form.value.id}`, form.value);
     if (res.code === 200) {

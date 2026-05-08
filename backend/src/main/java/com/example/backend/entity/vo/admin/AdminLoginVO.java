@@ -44,5 +44,10 @@ public class AdminLoginVO {
      */
     private String profile;
 
+    /**
+     * admin / inheritor
+     */
+    private String role;
+
     private String token;
 }

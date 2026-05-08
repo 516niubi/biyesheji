@@ -16,6 +16,10 @@ import org.springframework.beans.BeanUtils;
 import javax.annotation.Resource;
 
 import com.example.backend.common.enums.CodeEnum;
+import com.example.backend.entity.Inheritor;
+import com.example.backend.utils.BackendAuthHelper;
+import com.example.backend.utils.PublisherNameResolver;
+import com.example.backend.utils.PublisherNameResolver.PublisherView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +36,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     @Resource
     private ArticleMapper articleMapper;
 
+    @Resource
+    private PublisherNameResolver publisherNameResolver;
+
     /**
      * 新增
      *
@@ -40,8 +47,15 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
      */
     @Override
     public Integer add(Article request) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
         Article saveData = new Article();
         BeanUtils.copyProperties(request, saveData);
+        if (inh != null) {
+            saveData.setCreatorId(inh.getId());
+        } else {
+            saveData.setCreatorId(null);
+        }
         articleMapper.insert(saveData);
         return saveData.getId();
     }
@@ -54,6 +68,15 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
      */
     @Override
     public Boolean batchAdd(List<Article> request) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        for (Article a : request) {
+            if (inh != null) {
+                a.setCreatorId(inh.getId());
+            } else {
+                a.setCreatorId(null);
+            }
+        }
         return saveBatch(request);
     }
 
@@ -68,6 +91,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         if (id == null || id <= 0) {
             throw new BusinessException(CodeEnum.PARAMS_ERROR);
         }
+        Article row = articleMapper.selectById(id);
+        if (row == null) {
+            throw new BusinessException(CodeEnum.PARAMS_ERROR, "数据不存在");
+        }
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertArticleOwned(row);
         return removeById(id);
     }
 
@@ -81,6 +110,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     public Boolean batchDel(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException(CodeEnum.PARAMS_ERROR);
+        }
+        BackendAuthHelper.requireAdminOrInheritor();
+        for (Integer id : ids) {
+            Article row = articleMapper.selectById(id);
+            if (row != null) {
+                assertArticleOwned(row);
+            }
         }
         return removeByIds(ids);
     }
@@ -98,7 +134,12 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         if (findData == null) {
             throw new BusinessException(CodeEnum.SYSTEM_ERROR);
         }
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertArticleOwned(findData);
+        Integer preservedCreator = findData.getCreatorId();
         BeanUtils.copyProperties(request, findData);
+        findData.setCreatorId(preservedCreator);
+        findData.setId(id);
         return updateById(findData);
     }
 
@@ -107,14 +148,27 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
      *
      * @return
      */
+    private void assertArticleOwned(Article row) {
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        if (inh == null) {
+            return;
+        }
+        if (row.getCreatorId() == null || !row.getCreatorId().equals(inh.getId())) {
+            throw new BusinessException(CodeEnum.AUTH_ERROR, "仅能管理本人发布的资讯");
+        }
+    }
+
     @Override
-    public PageResult<List<ArticleVO>> queryPage(Integer pageNum, Integer pageSize, String title, String intro) {
+    public PageResult<List<ArticleVO>> queryPage(Integer pageNum, Integer pageSize, String title, String intro, Integer creatorIdFilter) {
         QueryWrapper<Article> queryWrapper = new QueryWrapper<>();
         if (CharSequenceUtil.isNotBlank(title)) {
             queryWrapper.like("title", title);
         }
         if (CharSequenceUtil.isNotBlank(intro)) {
             queryWrapper.like("intro", intro);
+        }
+        if (creatorIdFilter != null) {
+            queryWrapper.eq("creator_id", creatorIdFilter);
         }
         // ID 降序
         queryWrapper.orderByDesc("id");
@@ -148,7 +202,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
      */
     @Override
     public Article getByIdDetail(Integer id) {
-        return getById(id);
+        Article article = getById(id);
+        if (article != null) {
+            PublisherView pv = publisherNameResolver.resolveView(article.getCreatorId());
+            article.setPublisherName(pv.getName());
+            article.setPublisherAvatar(pv.getAvatar());
+        }
+        return article;
     }
     
     /**
@@ -164,6 +224,9 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
             // 增加浏览次数
             article.setViewCount(article.getViewCount() == null ? 1 : article.getViewCount() + 1);
             updateById(article);
+            PublisherView pv = publisherNameResolver.resolveView(article.getCreatorId());
+            article.setPublisherName(pv.getName());
+            article.setPublisherAvatar(pv.getAvatar());
         }
         return article;
     }
@@ -197,6 +260,10 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         for (Article article : articles) {
             ArticleVO articleVO = new ArticleVO();
             BeanUtils.copyProperties(article, articleVO);
+            articleVO.setCreatorId(article.getCreatorId());
+            PublisherView pv = publisherNameResolver.resolveView(article.getCreatorId());
+            articleVO.setPublisherName(pv.getName());
+            articleVO.setPublisherAvatar(pv.getAvatar());
             list.add(articleVO);
         }
         return list;

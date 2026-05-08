@@ -6,12 +6,12 @@ import com.example.backend.common.model.PageResult;
 import com.example.backend.common.result.BaseResponse;
 import com.example.backend.common.result.Result;
 import com.example.backend.entity.Admin;
-import com.example.backend.entity.User;
 import com.example.backend.entity.request.admin.AddAdminRequest;
 import com.example.backend.entity.request.user.UpdatePassRequest;
 import com.example.backend.entity.vo.admin.AdminLoginVO;
 import com.example.backend.entity.vo.admin.AdminVO;
 import com.example.backend.service.IAdminService;
+import com.example.backend.utils.BackendAuthHelper;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
@@ -20,11 +20,6 @@ import javax.annotation.Resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/**
- * @Author：caiya
- * @Description 管理员控制层
- * @Version 1.0
- */
 @RequestMapping("/admin")
 @RestController
 public class AdminController {
@@ -34,6 +29,7 @@ public class AdminController {
     @ApiOperation(value = "查询所有管理员接口")
     @GetMapping("/list")
     private BaseResponse<List<Admin>> list() {
+        BackendAuthHelper.requireLoginAdmin();
         List<Admin> list = adminService.list();
         return Result.success(list);
     }
@@ -44,10 +40,15 @@ public class AdminController {
             @RequestParam Integer pageNum,
             @RequestParam Integer pageSize,
             @RequestParam(defaultValue = "") String username,
-            @RequestParam(defaultValue = "") String nickName) {
+            @RequestParam(defaultValue = "") String nickName,
+            @RequestParam(required = false) String role) {
+        BackendAuthHelper.requireLoginAdmin();
         QueryWrapper<Admin> queryWrapper = new QueryWrapper<>();
         queryWrapper.like("username", username);
         queryWrapper.like("nick_name", nickName);
+        if (role != null && !role.trim().isEmpty()) {
+            queryWrapper.eq("role", role);
+        }
         queryWrapper.orderByDesc("id");
         Page<Admin> adminPage = adminService.page(new Page<>(pageNum, pageSize), queryWrapper);
 
@@ -62,7 +63,6 @@ public class AdminController {
         pageResult.setRecords(list);
         return Result.success(pageResult);
     }
-
 
     @ApiOperation("获取当前登录管理员信息")
     @GetMapping("/current")
@@ -84,7 +84,7 @@ public class AdminController {
         boolean res = adminService.removeById(id);
         return Result.success(res);
     }
-    
+
     @ApiOperation("批量删除管理员")
     @PostMapping("/batchDel")
     private BaseResponse<Boolean> batchDel(@RequestBody List<Integer> ids) {

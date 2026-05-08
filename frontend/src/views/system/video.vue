@@ -6,8 +6,6 @@ import { getImageUrl } from "../../utils/system";
 import Config from "../../config/index";
 import { computed, onMounted, ref, reactive } from "vue";
 import { hasPermission } from "../../utils/system";
-import "vue3-video-play/dist/style.css";
-import videoPlay from "vue3-video-play";
 
 const initParams = {
   pageNum: 1,
@@ -34,30 +32,8 @@ const visible = ref(false);
 // 控制视频预览弹窗
 const videoPreviewVisible = ref(false);
 const videoOptions = ref({
-  width: "800px", //播放器宽度
-  height: "450px", //播放器高度
-  color: "#409eff", //主题色
-  title: "", //视频名称
-  src: "", //视频源
-  muted: false, //静音
-  webFullScreen: false,
-  speedRate: ["0.75", "1.0", "1.25", "1.5", "2.0"], //播放倍速
-  autoPlay: false, //自动播放
-  loop: false, //循环播放
-  mirror: false, //镜像画面
-  ligthOff: false, //关灯模式
-  volume: 0.3, //默认音量大小
-  control: true, //是否显示控制
-  controlBtns: [
-    "audioTrack",
-    "quality",
-    "speedRate",
-    "volume",
-    "setting",
-    "pip",
-    "pageFullScreen",
-    "fullScreen",
-  ], //显示所有按钮,
+  title: "",
+  src: "",
 });
 
 // 批量删除相关
@@ -90,7 +66,7 @@ const coverImageUrl = ref(
 // 获取表格数据
 const getTableData = async () => {
   const res = await http.get(
-    `/video/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&title=${params.value.title}`
+    `/video/manage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&title=${params.value.title}`
   );
   if (res.code === 200) {
     tableData.value = res.data.records;
@@ -157,6 +133,19 @@ const handleSelectionChange = (selection) => {
 
 // 确认按钮
 const submit = async () => {
+  if (!form.value.title?.trim()) {
+    ElMessage.warning("请填写视频标题");
+    return;
+  }
+  if (!form.value.url) {
+    ElMessage.warning("请先上传视频文件");
+    return;
+  }
+  if (!form.value.coverUrl) {
+    ElMessage.warning("请上传封面图片");
+    return;
+  }
+
   if (isEdit.value) {
     const res = await http.post(`/video/edit?id=${form.value.id}`, form.value);
     if (res.code === 200) {
@@ -413,9 +402,12 @@ onMounted(async () => {
       :before-close="closeVideoPreview"
     >
       <div class="video-preview-container">
-        <videoPlay
-          v-bind="videoOptions"
-          poster=""
+        <video
+          v-if="videoOptions.src"
+          class="video-player"
+          :src="videoOptions.src"
+          controls
+          preload="metadata"
         />
       </div>
     </el-dialog>
@@ -478,6 +470,14 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.video-player {
+  width: 100%;
+  max-width: 760px;
+  max-height: 430px;
+  border-radius: 8px;
+  background: #000;
 }
 
 :deep(.el-image) {

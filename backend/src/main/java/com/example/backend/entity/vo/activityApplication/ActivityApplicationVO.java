@@ -1,5 +1,6 @@
 package com.example.backend.entity.vo.activityApplication;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.example.backend.entity.ActivityApplication;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -20,6 +21,10 @@ public class ActivityApplicationVO extends ActivityApplication {
      * 活动标题
      */
     private String activityTitle;
+
+    /** 活动封面（相对路径） */
+    @TableField(exist = false)
+    private String activityCoverImage;
     
     /**
      * 状态文本

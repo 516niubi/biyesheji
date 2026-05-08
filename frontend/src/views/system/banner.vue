@@ -125,6 +125,15 @@ const handleSelectionChange = (selection) => {
 
 // 确认按钮
 const submit = async () => {
+  if (!form.value.title?.trim()) {
+    ElMessage.warning("请填写轮播图标题");
+    return;
+  }
+  if (!form.value.url) {
+    ElMessage.warning("请上传轮播图");
+    return;
+  }
+
   if (isEdit.value) {
     const res = await http.post(`/banner/edit?id=${form.value.id}`, form.value);
     if (res.code === 200) {

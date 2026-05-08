@@ -44,6 +44,17 @@ public class Article implements Serializable {
     @ApiModelProperty("浏览次数")
     private Integer viewCount;
 
+    @ApiModelProperty("创建人后台账号ID")
+    private Integer creatorId;
+
+    @ApiModelProperty("发布人展示名（非表字段）")
+    @TableField(exist = false)
+    private String publisherName;
+
+    @ApiModelProperty("发布人头像路径（非表字段）")
+    @TableField(exist = false)
+    private String publisherAvatar;
+
     @ApiModelProperty("封面图片URL")
     private String coverUrl;
 

@@ -54,10 +54,13 @@ public interface IVideoService extends IService<Video> {
         Boolean edit(Integer id, Video request);
 
         /**
-         * 分页条件查询
-         * @return
+         * @param creatorIdFilter 非空时仅查询该创建人的视频
          */
-        PageResult<List<VideoVO>> queryPage(Integer pageNum, Integer pageSize, String title);
+        PageResult<List<VideoVO>> queryPage(Integer pageNum, Integer pageSize, String title, Integer creatorIdFilter);
+
+        default PageResult<List<VideoVO>> queryPage(Integer pageNum, Integer pageSize, String title) {
+            return queryPage(pageNum, pageSize, title, null);
+        }
 
         /**
          * 查询全部

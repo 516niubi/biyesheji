@@ -18,4 +18,14 @@ public class CollectVO extends Collect {
     
     @TableField(exist = false)
     private String heritageName;
+
+    /** 文物封面（相对路径，前端需拼接资源地址） */
+    @TableField(exist = false)
+    private String heritageCoverImage;
+
+    @TableField(exist = false)
+    private String heritageIntro;
+
+    @TableField(exist = false)
+    private String heritageCategoryName;
 }

@@ -4,8 +4,12 @@ import { useRoute } from 'vue-router'
 import http from '../../utils/http'
 import { getImageUrl } from '../../utils/system'
 import { ElMessage } from 'element-plus'
-import { Star, StarFilled, User } from '@element-plus/icons-vue'
+import { Star, StarFilled, Clock, View } from '@element-plus/icons-vue'
 import useUserStore from '../../stores/userStore'
+import PublisherInheritorRow from '../../components/PublisherInheritorRow.vue'
+import CommentThread from '../../components/CommentThread.vue'
+import Config from '@/config'
+import { getStoredToken } from '@/utils/authToken'
 
 const route = useRoute()
 const userStore = useUserStore()
@@ -17,9 +21,50 @@ const collectLoading = ref(false)
 const comments = ref<any[]>([])
 const commentLoading = ref(false)
 const newComment = ref('')
+const commentImages = ref<string[]>([])
 const commentSubmitting = ref(false)
 
-// 获取当前用户信息
+const uploadUrl = `${Config.baseUrl}/file/upload`
+const uploadHeaders = computed(() => ({ authorization: `${getStoredToken()}` }))
+
+const totalCommentCount = computed(() => {
+  const walk = (arr: any[]): number => {
+    if (!arr?.length) return 0
+    let n = 0
+    for (const c of arr) {
+      n += 1 + walk(c.children || [])
+    }
+    return n
+  }
+  return walk(comments.value)
+})
+
+const beforeCommentImage = (raw: File) => {
+  if (!raw.type.includes('image')) {
+    ElMessage.error('仅支持图片')
+    return false
+  }
+  if (raw.size / 1024 / 1024 > 2) {
+    ElMessage.error('单张图片不超过 2MB')
+    return false
+  }
+  return true
+}
+
+const onCommentImageSuccess = (res: any) => {
+  if (res?.code === 200 && res.data) {
+    if (commentImages.value.length >= 9) {
+      ElMessage.warning('最多 9 张图片')
+      return
+    }
+    commentImages.value.push(res.data)
+  }
+}
+
+const removeRootImage = (idx: number) => {
+  commentImages.value.splice(idx, 1)
+}
+
 const currentUser = computed(() => {
   try {
     return typeof userStore.userInfo === 'string' ? JSON.parse(userStore.userInfo) : userStore.userInfo
@@ -28,20 +73,18 @@ const currentUser = computed(() => {
   }
 })
 
-// 获取非遗文物详情
 const getHeritageDetail = async () => {
   const id = route.query.id
   if (!id) {
     ElMessage.error('参数错误')
     return
   }
-  
+
   loading.value = true
   try {
     const res = await http.get(`/culturalHeritage/getById?id=${id}`)
     if (res.code === 200) {
       heritageDetail.value = res.data
-      // 获取收藏状态
       await checkCollectStatus()
     } else {
       ElMessage.error('获取详情失败')
@@ -53,12 +96,13 @@ const getHeritageDetail = async () => {
   }
 }
 
-// 检查收藏状态
 const checkCollectStatus = async () => {
   if (!currentUser.value?.id || !heritageDetail.value?.id) return
-  
+
   try {
-    const res = await http.get(`/collect/isCollected?userId=${currentUser.value.id}&heritageId=${heritageDetail.value.id}`)
+    const res = await http.get(
+      `/collect/isCollected?userId=${currentUser.value.id}&heritageId=${heritageDetail.value.id}`
+    )
     if (res.code === 200) {
       isCollected.value = res.data
     }
@@ -67,20 +111,22 @@ const checkCollectStatus = async () => {
   }
 }
 
-// 收藏/取消收藏
 const toggleCollect = async () => {
   if (!currentUser.value?.id) {
     ElMessage.warning('请先登录')
     return
   }
-  
+
   collectLoading.value = true
   try {
     if (isCollected.value) {
-      // 取消收藏 - 需要先查询收藏记录ID
-      const collectRes = await http.get(`/collect/pageByUserId?pageNum=1&pageSize=1000&userId=${currentUser.value.id}`)
+      const collectRes = await http.get(
+        `/collect/pageByUserId?pageNum=1&pageSize=1000&userId=${currentUser.value.id}`
+      )
       if (collectRes.code === 200) {
-        const collectRecord = collectRes.data.records.find((item: any) => item.heritageId === heritageDetail.value.id)
+        const collectRecord = collectRes.data.records.find(
+          (item: any) => item.heritageId === heritageDetail.value.id
+        )
         if (collectRecord) {
           await http.get(`/collect/del?id=${collectRecord.id}`)
           isCollected.value = false
@@ -88,7 +134,6 @@ const toggleCollect = async () => {
         }
       }
     } else {
-      // 添加收藏
       const res = await http.post('/collect/add', {
         heritageId: heritageDetail.value.id,
         userId: currentUser.value.id
@@ -105,10 +150,9 @@ const toggleCollect = async () => {
   }
 }
 
-// 获取评论列表
 const getComments = async () => {
   if (!heritageDetail.value?.id) return
-  
+
   commentLoading.value = true
   try {
     const res = await http.get(`/comment/selectByHeritageId/${heritageDetail.value.id}`)
@@ -122,28 +166,29 @@ const getComments = async () => {
   }
 }
 
-// 提交评论
 const submitComment = async () => {
-  if (!currentUser.value?.id) {
+  if (!getStoredToken()) {
     ElMessage.warning('请先登录')
     return
   }
-  
-  if (!newComment.value.trim()) {
-    ElMessage.warning('请输入评论内容')
+
+  const text = newComment.value.trim()
+  if (!text && !commentImages.value.length) {
+    ElMessage.warning('请输入评论内容或上传图片')
     return
   }
-  
+
   commentSubmitting.value = true
   try {
     const res = await http.post('/comment/add', {
       heritageId: heritageDetail.value.id,
-      userId: currentUser.value.id,
-      content: newComment.value.trim()
+      content: text,
+      images: [...commentImages.value]
     })
     if (res.code === 200) {
       ElMessage.success('评论成功')
       newComment.value = ''
+      commentImages.value = []
       await getComments()
     }
   } catch (error) {
@@ -153,11 +198,39 @@ const submitComment = async () => {
   }
 }
 
-// 格式化日期
+const handleReplySubmit = async (payload: { parentId: number; content: string; images: string[] }) => {
+  if (!getStoredToken()) {
+    ElMessage.warning('请先登录')
+    return
+  }
+  const text = payload.content?.trim() || ''
+  if (!text && !payload.images?.length) {
+    ElMessage.warning('请输入回复内容或上传图片')
+    return
+  }
+  commentSubmitting.value = true
+  try {
+    const res = await http.post('/comment/add', {
+      heritageId: heritageDetail.value.id,
+      parentId: payload.parentId,
+      content: text,
+      images: payload.images || []
+    })
+    if (res.code === 200) {
+      ElMessage.success('回复成功')
+      await getComments()
+    }
+  } catch (e) {
+    ElMessage.error('回复失败')
+  } finally {
+    commentSubmitting.value = false
+  }
+}
+
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
-  return date.toLocaleDateString('zh-CN', {
+  return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -166,7 +239,6 @@ const formatDate = (dateStr: string) => {
   })
 }
 
-// Tab切换时加载评论
 const handleTabChange = (tabName: string) => {
   if (tabName === 'comment') {
     getComments()
@@ -179,87 +251,121 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="heritage-detail-container">
-    <el-card v-loading="loading" class="detail-card">
-      <template v-if="!loading && heritageDetail.id">
-        <!-- 头部信息区域 -->
-        <div class="header-section">
-          <!-- 左侧封面图片 -->
-          <div class="cover-section">
-            <el-image
-              v-if="heritageDetail.coverImage"
-              :src="getImageUrl(heritageDetail.coverImage)"
-              :alt="heritageDetail.name"
-              class="cover-image"
-              fit="cover"
-              :preview-src-list="[getImageUrl(heritageDetail.coverImage)]"
-              :preview-teleported="true"
-              :hide-on-click-modal="true"
-            >
-              <template #error>
-                <div class="image-error">
-                  <span>图片加载失败</span>
-                </div>
-              </template>
-            </el-image>
-            <div v-else class="no-image">
-              <span>暂无图片</span>
+  <div class="heritage-detail-page">
+    <div v-if="loading" class="loading-container">
+      <div class="loading-text">加载中...</div>
+    </div>
+
+    <div v-else-if="heritageDetail.id" class="heritage-detail">
+      <nav class="breadcrumb" aria-label="面包屑导航">
+        <router-link to="/front/home">首页</router-link>
+        <span class="breadcrumb-sep">/</span>
+        <router-link to="/front/heritage">非遗文物</router-link>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">文物详情</span>
+      </nav>
+
+      <!-- 主信息区（与活动详情同构） -->
+      <section class="heritage-info-section">
+        <div class="section-kicker">非遗文物</div>
+        <div class="heritage-info-grid">
+          <div class="heritage-cover">
+            <div class="cover-frame">
+              <el-image
+                v-if="heritageDetail.coverImage"
+                :src="getImageUrl(heritageDetail.coverImage)"
+                :alt="heritageDetail.name"
+                fit="cover"
+                class="cover-image"
+                :preview-src-list="[getImageUrl(heritageDetail.coverImage)]"
+                :preview-teleported="true"
+                :hide-on-click-modal="true"
+              >
+                <template #error>
+                  <div class="image-error"><span>图片加载失败</span></div>
+                </template>
+              </el-image>
+              <div v-else class="no-image"><span>暂无封面</span></div>
             </div>
           </div>
-          
-          <!-- 右侧基本信息 -->
-          <div class="info-section">
-            <h1 class="heritage-title">{{ heritageDetail.name }}</h1>
-            
-            <div class="meta-info">
-              <div class="meta-item">
-                <span class="label">发布时间：</span>
-                <span>{{ formatDate(heritageDetail.createTime) }}</span>
+
+          <div class="heritage-info">
+            <div class="title-row">
+              <h1 class="heritage-title">{{ heritageDetail.name }}</h1>
+            </div>
+
+            <p class="heritage-lead">
+              数字化档案便于浏览与分享，欢迎收藏并在评论区交流观感。
+            </p>
+
+            <div class="quick-stats">
+              <div class="stat-chip stat-chip--publisher">
+                <PublisherInheritorRow
+                  :inheritor-id="heritageDetail.creatorId"
+                  :name="heritageDetail.publisherName || '平台'"
+                  :avatar="heritageDetail.publisherAvatar"
+                  :size="44"
+                />
               </div>
-              <div class="meta-item">
-                <span class="label">浏览量：</span>
-                <span>{{ heritageDetail.viewCount || 0 }}</span>
+              <div class="stat-chip" v-if="heritageDetail.createTime">
+                <Clock class="stat-icon" />
+                <div class="stat-text">
+                  <span class="stat-label">发布时间</span>
+                  <span class="stat-value">{{ formatDate(heritageDetail.createTime) }}</span>
+                </div>
+              </div>
+              <div class="stat-chip">
+                <View class="stat-icon" />
+                <div class="stat-text">
+                  <span class="stat-label">浏览量</span>
+                  <span class="stat-value">{{ heritageDetail.viewCount ?? 0 }}</span>
+                </div>
               </div>
             </div>
-            
-            <!-- 简介 -->
-            <div v-if="heritageDetail.intro" class="intro-section">
-              <h3 class="section-title">简介</h3>
-              <p class="intro-text">{{ heritageDetail.intro }}</p>
+
+            <div v-if="heritageDetail.intro" class="intro-card">
+              <h2 class="intro-card-title">简介</h2>
+              <p class="intro-card-text">{{ heritageDetail.intro }}</p>
             </div>
-            
-            <!-- 收藏按钮 -->
+
             <div class="action-section">
               <el-button
-                :type="isCollected ? 'warning' : 'primary'"
+                class="collect-btn"
+                :class="{ 'collect-btn--active': isCollected }"
                 :icon="isCollected ? StarFilled : Star"
                 :loading="collectLoading"
-                @click="toggleCollect"
                 size="large"
+                round
+                @click="toggleCollect"
               >
-                {{ isCollected ? '已收藏' : '收藏' }}
+                {{ isCollected ? '已收藏' : '收藏文物' }}
               </el-button>
             </div>
           </div>
         </div>
-        
-        <!-- Tabs区域 -->
-        <div class="tabs-section">
-          <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-            <!-- 详情Tab -->
+      </section>
+
+      <!-- 详情 / 评论 -->
+      <section class="heritage-tabs-section">
+        <div class="tabs-inner">
+          <div class="tabs-head">
+            <h2 class="tabs-title">更多内容</h2>
+            <p class="tabs-sub">图文详情与观众评论</p>
+          </div>
+          <el-tabs v-model="activeTab" class="heritage-tabs" @tab-change="handleTabChange">
             <el-tab-pane label="详情" name="detail">
-              <div v-if="heritageDetail.description" class="content-section">
-                <div class="content-text" v-html="heritageDetail.description"></div>
+              <div v-if="heritageDetail.description" class="content-body" v-html="heritageDetail.description" />
+              <div v-else class="content-body content-body--empty">
+                <p class="empty-placeholder">暂无详细图文，欢迎稍后再来查看更新。</p>
               </div>
-              <el-empty v-else description="暂无详细描述" />
             </el-tab-pane>
-            
-            <!-- 评论Tab -->
             <el-tab-pane label="评论" name="comment">
               <div class="comment-section">
-                <!-- 新增评论 -->
                 <div class="add-comment">
-                  <h3 class="comment-title">发表评论</h3>
+                  <h3 class="comment-block-title">发表评论</h3>
+                  <p class="comment-login-hint">
+                    登录后可发表评论；传承人登录将以「传承人」身份回复。可在右上角头像菜单进入「我的评论」管理留言与查看回复。
+                  </p>
                   <div class="comment-input-area">
                     <el-input
                       v-model="newComment"
@@ -269,10 +375,30 @@ onMounted(() => {
                       maxlength="500"
                       show-word-limit
                     />
+                    <div class="comment-upload-row">
+                      <span class="upload-label">添加图片（可选，最多9张）</span>
+                      <el-upload
+                        :action="uploadUrl"
+                        :headers="uploadHeaders"
+                        :show-file-list="false"
+                        :before-upload="beforeCommentImage"
+                        :on-success="onCommentImageSuccess"
+                        accept="image/*"
+                      >
+                        <el-button size="small">上传图片</el-button>
+                      </el-upload>
+                    </div>
+                    <div v-if="commentImages.length" class="root-thumbs">
+                      <div v-for="(p, i) in commentImages" :key="i" class="thumb-cell">
+                        <el-image :src="getImageUrl(p)" fit="cover" class="thumb-img" />
+                        <el-button text type="danger" size="small" @click="removeRootImage(i)">移除</el-button>
+                      </div>
+                    </div>
                     <div class="comment-actions">
                       <el-button
-                        type="primary"
+                        class="heritage-submit-btn"
                         :loading="commentSubmitting"
+                        round
                         @click="submitComment"
                       >
                         发表评论
@@ -280,23 +406,16 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                
-                <!-- 评论列表 -->
                 <div class="comment-list" v-loading="commentLoading">
-                  <h3 class="comment-title">评论列表 ({{ comments.length }})</h3>
-                  <div v-if="comments.length > 0" class="comments">
-                    <div v-for="comment in comments" :key="comment.id" class="comment-item">
-                      <div class="comment-avatar">
-                        <el-avatar :src="getImageUrl(comment.avatar)" size="large" />
-                      </div>
-                      <div class="comment-content">
-                        <div class="comment-header">
-                          <span class="comment-author">{{ comment.userName || '匿名用户' }}</span>
-                          <span class="comment-time">{{ formatDate(comment.createTime) }}</span>
-                        </div>
-                        <div class="comment-text">{{ comment.content }}</div>
-                      </div>
-                    </div>
+                  <h3 class="comment-block-title">评论列表（{{ totalCommentCount }}）</h3>
+                  <div v-if="comments.length > 0" class="comments-tree">
+                    <CommentThread
+                      v-for="c in comments"
+                      :key="c.id"
+                      :comment="c"
+                      :depth="0"
+                      @submit-reply="handleReplySubmit"
+                    />
                   </div>
                   <el-empty v-else description="暂无评论" />
                 </div>
@@ -304,288 +423,493 @@ onMounted(() => {
             </el-tab-pane>
           </el-tabs>
         </div>
-      </template>
-      
-      <!-- 空状态 -->
-      <el-empty v-else-if="!loading" description="暂无数据" />
-    </el-card>
+      </section>
+    </div>
+
+    <div v-else-if="!loading" class="empty-container">
+      <div class="empty-content">
+        <div class="empty-icon">📦</div>
+        <h3 class="empty-title">文物不存在</h3>
+        <p class="empty-description">该内容可能已被删除或不存在</p>
+      </div>
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.heritage-detail-container {
-  padding: 20px;
-  max-width: 1200px;
+.heritage-detail-page {
+  --accent: #a82c28;
+  --accent-light: #d0453c;
+  --accent-deep: #6e1a1a;
+  --ink: #1f1a17;
+  --muted: #5c534c;
+  --card: #ffffff;
+  --line: rgba(31, 26, 23, 0.08);
+  --shadow: 0 8px 32px rgba(62, 18, 18, 0.08);
+  min-height: 100vh;
+  position: relative;
+  background: linear-gradient(180deg, #f0e4e2 0%, #f6ece9 30%, #faf6f4 100%);
+  padding-bottom: 48px;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  .loading-text {
+    font-size: 16px;
+    color: var(--muted);
+  }
+}
+
+.heritage-detail {
+  max-width: 1120px;
   margin: 0 auto;
-  
-  .detail-card {
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    
-    // 头部区域
-    .header-section {
-      display: flex;
-      gap: 30px;
-      margin-bottom: 30px;
-      padding-bottom: 30px;
-      border-bottom: 2px solid #f0f0f0;
-      
-      // 左侧封面
-      .cover-section {
-        flex: 0 0 400px;
-        
-        .cover-image {
-          width: 100%;
-          height: 300px;
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        
-        .image-error,
-        .no-image {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 100%;
-          height: 300px;
-          background: #f5f5f5;
-          border-radius: 12px;
-          color: #999;
-          font-size: 16px;
-        }
-      }
-      
-      // 右侧信息
-      .info-section {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        
-        .heritage-title {
-          font-size: 28px;
-          font-weight: bold;
-          color: #2c3e50;
-          margin: 0 0 20px 0;
-          line-height: 1.4;
-        }
-        
-        .meta-info {
-          margin-bottom: 20px;
-          
-          .meta-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-            color: #666;
-            font-size: 14px;
-            
-            .label {
-              font-weight: 600;
-              margin-right: 8px;
-              color: #333;
-            }
-          }
-        }
-        
-        .intro-section {
-          margin-bottom: 20px;
-          flex: 1;
-          
-          .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 1px solid #e0e0e0;
-          }
-          
-          .intro-text {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #555;
-            text-align: justify;
-            margin: 0;
-          }
-        }
-        
-        .action-section {
-          margin-top: auto;
-          
-          .el-button {
-            padding: 12px 24px;
-            font-size: 16px;
-          }
-        }
-      }
+  padding: 28px 24px 0;
+}
+
+.breadcrumb {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+
+  a {
+    color: var(--accent);
+    font-weight: 600;
+    &:hover {
+      opacity: 0.88;
     }
-    
-    // Tabs区域
-    .tabs-section {
-      .content-section {
-        padding: 20px 0;
-        
-        .content-text {
-          font-size: 15px;
-          line-height: 1.8;
-          color: #333;
-          text-align: justify;
-          
-          :deep(img) {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            margin: 15px 0;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-          }
-          
-          :deep(p) {
-            margin-bottom: 15px;
-          }
-          
-          :deep(h1, h2, h3, h4, h5, h6) {
-            margin: 25px 0 15px 0;
-            color: #2c3e50;
-          }
-        }
+  }
+  .breadcrumb-sep {
+    opacity: 0.45;
+    user-select: none;
+  }
+  .breadcrumb-current {
+    color: var(--ink);
+    font-weight: 700;
+  }
+}
+
+.heritage-info-section {
+  position: relative;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 32px 36px 36px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, #5c1818, #a82c28, #d06052, #c9957a);
+    opacity: 0.95;
+  }
+
+  .section-kicker {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+}
+
+.heritage-info-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 400px) 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+.cover-frame {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 40px rgba(31, 26, 23, 0.1);
+  background: #f6ecea;
+}
+
+.cover-image {
+  width: 100%;
+  height: 300px;
+  display: block;
+}
+
+.image-error,
+.no-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;
+  background: #f6ecea;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.heritage-info {
+  .title-row {
+    margin-bottom: 12px;
+  }
+
+  .heritage-title {
+    margin: 0;
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 800;
+    color: var(--ink);
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+
+  .heritage-lead {
+    margin: 0 0 22px;
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--muted);
+    max-width: 52em;
+  }
+
+  .quick-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+
+  .stat-chip {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(168, 44, 40, 0.1), rgba(208, 69, 60, 0.06));
+    border: 1px solid var(--line);
+  }
+
+  .stat-chip--publisher {
+    align-items: center;
+    :deep(.publisher-inheritor-row) {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+
+  .stat-icon {
+    width: 22px;
+    height: 22px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .stat-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.45;
+    word-break: break-word;
+  }
+
+  .intro-card {
+    padding: 18px 20px;
+    border-radius: 14px;
+    background: rgba(168, 44, 40, 0.07);
+    border: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+
+  .intro-card-title {
+    margin: 0 0 10px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+
+  .intro-card-text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--muted);
+  }
+
+  .action-section {
+    .collect-btn {
+      min-width: 200px;
+      height: 48px;
+      font-weight: 700;
+      border: none;
+      color: #fff;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      box-shadow: 0 6px 22px rgba(110, 26, 26, 0.35);
+
+      &:hover {
+        opacity: 0.95;
+        filter: brightness(1.05);
       }
-      
-      // 评论区域
-      .comment-section {
-        .add-comment {
-          margin-bottom: 30px;
-          padding: 20px;
-          background: #f8f9fa;
-          border-radius: 12px;
-          
-          .comment-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 15px;
-          }
-          
-          .comment-input-area {
-            .comment-actions {
-              margin-top: 15px;
-              text-align: right;
-            }
-          }
-        }
-        
-        .comment-list {
-          .comment-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e0e0e0;
-          }
-          
-          .comments {
-            .comment-item {
-              display: flex;
-              gap: 15px;
-              padding: 20px 0;
-              border-bottom: 1px solid #f0f0f0;
-              
-              &:last-child {
-                border-bottom: none;
-              }
-              
-              .comment-avatar {
-                flex: 0 0 auto;
-              }
-              
-              .comment-content {
-                flex: 1;
-                
-                .comment-header {
-                  display: flex;
-                  justify-content: space-between;
-                  align-items: center;
-                  margin-bottom: 8px;
-                  
-                  .comment-author {
-                    font-weight: 600;
-                    color: #2c3e50;
-                    font-size: 14px;
-                  }
-                  
-                  .comment-time {
-                    color: #999;
-                    font-size: 12px;
-                  }
-                }
-                
-                .comment-text {
-                  color: #555;
-                  line-height: 1.6;
-                  font-size: 14px;
-                }
-              }
-            }
-          }
-        }
+
+      &.collect-btn--active {
+        background: linear-gradient(135deg, #5a1518 0%, #8b2424 100%);
+        box-shadow: 0 6px 22px rgba(40, 10, 10, 0.4);
       }
     }
   }
 }
 
-// 响应式设计
-@media (max-width: 768px) {
-  .heritage-detail-container {
-    padding: 10px;
-    
-    .detail-card {
-      .header-section {
-        flex-direction: column;
-        gap: 20px;
-        
-        .cover-section {
-          flex: none;
-          
-          .cover-image,
-          .image-error,
-          .no-image {
-            height: 200px;
-          }
-        }
-        
-        .info-section {
-          .heritage-title {
-            font-size: 22px;
-          }
-          
-          .meta-info {
-            .meta-item {
-              flex-direction: column;
-              align-items: flex-start;
-              gap: 5px;
-            }
-          }
-        }
-      }
-      
-      .tabs-section {
-        .comment-section {
-          .comment-list {
-            .comments {
-              .comment-item {
-                .comment-content {
-                  .comment-header {
-                    flex-direction: column;
-                    align-items: flex-start;
-                    gap: 5px;
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+.heritage-tabs-section {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 28px 32px 36px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #6e1a1a, #c53d2e);
+  }
+}
+
+.tabs-inner {
+  padding-left: 8px;
+}
+
+.tabs-head {
+  margin-bottom: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs-title {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.tabs-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.content-body {
+  padding-top: 20px;
+  font-size: 16px;
+  line-height: 1.9;
+  color: #3d3833;
+
+  :deep(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    margin: 16px 0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  }
+  :deep(p) {
+    margin: 16px 0;
+  }
+  :deep(h1, h2, h3, h4, h5, h6) {
+    color: var(--ink);
+    margin: 24px 0 12px;
+    font-weight: 700;
+  }
+
+  &.content-body--empty {
+    margin-top: 16px;
+    padding: 28px 20px;
+    text-align: center;
+    background: #faf4f3;
+    border-radius: 14px;
+    border: 1px dashed rgba(31, 26, 23, 0.12);
+  }
+
+  .empty-placeholder {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+  }
+}
+
+.comment-section {
+  padding-top: 8px;
+}
+
+.add-comment {
+  margin-bottom: 28px;
+  padding: 20px;
+  background: #faf4f2;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.comment-block-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+.comment-login-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 0 0 14px;
+  line-height: 1.55;
+}
+
+.comment-upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  .upload-label {
+    font-size: 12px;
+    color: #7a6a62;
+  }
+}
+
+.root-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+.thumb-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.thumb-img {
+  width: 88px;
+  height: 88px;
+  border-radius: 10px;
+}
+
+.comments-tree {
+  margin-top: 8px;
+}
+
+.comment-actions {
+  margin-top: 14px;
+  text-align: right;
+}
+
+.heritage-submit-btn {
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent-light));
+  box-shadow: 0 4px 16px rgba(110, 26, 26, 0.28);
+  &:hover {
+    opacity: 0.95;
+    filter: brightness(1.05);
+  }
+}
+
+.empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 55vh;
+  .empty-content {
+    text-align: center;
+  }
+  .empty-icon {
+    font-size: 56px;
+    margin-bottom: 12px;
+  }
+  .empty-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+    margin: 0 0 8px;
+  }
+  .empty-description {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+  }
+}
+
+:deep(.heritage-tabs.el-tabs) {
+  .el-tabs__header {
+    margin-bottom: 0;
+  }
+  .el-tabs__nav-wrap::after {
+    height: 1px;
+    background: var(--line);
+  }
+  .el-tabs__item {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    &.is-active {
+      color: var(--accent);
     }
+    &:hover {
+      color: var(--accent-light);
+    }
+  }
+  .el-tabs__active-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  }
+}
+
+@media (max-width: 768px) {
+  .heritage-detail {
+    padding: 16px 16px 0;
+  }
+  .heritage-info-section {
+    padding: 24px 20px 28px;
+  }
+  .heritage-info-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .cover-image {
+    height: 220px;
+  }
+  .heritage-tabs-section {
+    padding: 22px 18px 28px;
+  }
+  .quick-stats {
+    grid-template-columns: 1fr !important;
+  }
+  .action-section .collect-btn {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>

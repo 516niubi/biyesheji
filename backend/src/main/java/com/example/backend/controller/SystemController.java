@@ -10,6 +10,7 @@ import com.example.backend.exception.BusinessException;
 import com.example.backend.entity.request.system.LoginRequest;
 import com.example.backend.entity.request.system.RegisterRequest;
 import com.example.backend.entity.vo.user.UserLoginVO;
+import com.example.backend.service.ICaptchaService;
 import com.example.backend.service.IUserService;
 import com.example.backend.service.impl.AdminServiceImpl;
 import io.swagger.annotations.ApiOperation;
@@ -31,6 +32,8 @@ public class SystemController {
     private IUserService userService;
     @Resource
     private AdminServiceImpl adminService;
+    @Resource
+    private ICaptchaService captchaService;
 
     @ApiOperation("测试接口")
     @GetMapping("/test")
@@ -47,6 +50,7 @@ public class SystemController {
     @PostMapping("/login")
     private BaseResponse<UserLoginVO> login(@RequestBody LoginRequest request) {
         if (ObjectUtil.isNull(request)) throw new BusinessException(CodeEnum.NULL_ERROR);
+        captchaService.verifyAndConsume(request.getCaptchaKey(), request.getCaptcha());
         UserLoginVO res = userService.login(request);
         return Result.success(res);
     }
@@ -60,6 +64,7 @@ public class SystemController {
     @PostMapping("/admin/login")
     private BaseResponse<AdminLoginVO> adminLogin(@RequestBody LoginRequest request) {
         if (ObjectUtil.isNull(request)) throw new BusinessException(CodeEnum.NULL_ERROR);
+        captchaService.verifyAndConsume(request.getCaptchaKey(), request.getCaptcha());
         AdminLoginVO res = adminService.login(request);
         return Result.success(res);
     }

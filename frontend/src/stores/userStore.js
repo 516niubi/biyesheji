@@ -3,9 +3,9 @@ import router from "../router";
 
 const useUserStore = defineStore("user", {
   state: () => ({
-    token: localStorage.getItem("token") ?? "",
-    userInfo: localStorage.getItem("userInfo") ?? {},
-    roleFlag: localStorage.getItem("roleFlag") ?? "",
+    token: "",
+    userInfo: {},
+    roleFlag: "",
   }),
   getters: {
     getUserInfo() {
@@ -24,12 +24,26 @@ const useUserStore = defineStore("user", {
     },
     setToken(token) {
       this.token = token;
+      // 与 el-upload 等直接读 localStorage 的代码兼容
+      if (token) {
+        try {
+          localStorage.setItem("token", token);
+        } catch {
+          /* ignore */
+        }
+      }
     },
     setRoleFlag(roleFlag) {
       this.roleFlag = roleFlag;
     },
     logout() {
-      localStorage.clear();
+      this.token = "";
+      this.userInfo = {};
+      this.roleFlag = "";
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      localStorage.removeItem("userInfo");
+      localStorage.removeItem("roleFlag");
       router.push("/login");
     },
   },

@@ -26,7 +26,7 @@ public class SaTokenConfigure implements WebMvcConfigurer {
     public SaServletFilter getSaServletFilter() {
         return new SaServletFilter()
                 .addInclude("/**")
-                .addExclude("/login", "/admin/login", "register")
+                .addExclude("/login", "/admin/login", "/register", "/inheritor/register", "/inheritor/login", "/inheritor/public/**", "/captcha")
                 .setBeforeAuth(obj -> {
                     // ---------- 设置跨域响应头 ----------
                     SaHolder.getResponse()

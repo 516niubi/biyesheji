@@ -13,7 +13,9 @@ import com.example.backend.entity.vo.collect.CollectVO;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.mapper.CollectMapper;
 import com.example.backend.mapper.UserMapper;
+import com.example.backend.entity.IchType;
 import com.example.backend.mapper.CulturalHeritageMapper;
+import com.example.backend.mapper.IchTypeMapper;
 import com.example.backend.service.ICollectService;
 import com.example.backend.utils.UserUtils;
 import org.springframework.beans.BeanUtils;
@@ -38,6 +40,8 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper, Collect> impl
     private UserMapper userMapper;
     @Resource
     private CulturalHeritageMapper culturalHeritageMapper;
+    @Resource
+    private IchTypeMapper ichTypeMapper;
 
     /**
      * 新增
@@ -224,6 +228,14 @@ public class CollectServiceImpl extends ServiceImpl<CollectMapper, Collect> impl
                 CulturalHeritage heritage = culturalHeritageMapper.selectById(collect.getHeritageId());
                 if (heritage != null) {
                     collectVO.setHeritageName(heritage.getName());
+                    collectVO.setHeritageCoverImage(heritage.getCoverImage());
+                    collectVO.setHeritageIntro(heritage.getIntro());
+                    if (heritage.getCategoryId() != null) {
+                        IchType ichType = ichTypeMapper.selectById(heritage.getCategoryId());
+                        if (ichType != null) {
+                            collectVO.setHeritageCategoryName(ichType.getName());
+                        }
+                    }
                 }
             }
             list.add(collectVO);

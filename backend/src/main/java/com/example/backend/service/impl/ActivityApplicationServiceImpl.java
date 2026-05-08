@@ -15,12 +15,15 @@ import com.example.backend.mapper.ActivityApplicationMapper;
 import com.example.backend.service.IActivityApplicationService;
 import com.example.backend.service.IActivityService;
 import com.example.backend.service.IUserService;
+import com.example.backend.entity.Inheritor;
+import com.example.backend.utils.BackendAuthHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -56,25 +59,69 @@ public class ActivityApplicationServiceImpl extends ServiceImpl<ActivityApplicat
 
     @Override
     public Boolean del(Integer id) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        ActivityApplication row = getById(id);
+        if (row != null) {
+            assertApplicationManagedBy(row);
+        }
         return removeById(id);
     }
 
     @Override
     public Boolean batchDel(List<Integer> ids) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        for (Integer id : ids) {
+            ActivityApplication row = getById(id);
+            if (row != null) {
+                assertApplicationManagedBy(row);
+            }
+        }
         return removeByIds(ids);
     }
 
     @Override
     public Boolean edit(Integer id, ActivityApplication activityApplication) {
+        ActivityApplication existing = getById(id);
+        if (existing != null) {
+            BackendAuthHelper.requireAdminOrInheritor();
+            assertApplicationManagedBy(existing);
+        }
         activityApplication.setId(id);
         activityApplication.setUpdateTime(LocalDateTime.now());
         return updateById(activityApplication);
     }
 
+    private void assertApplicationManagedBy(ActivityApplication application) {
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        if (inh == null) {
+            return;
+        }
+        Activity activity = activityService.getById(application.getActivityId());
+        if (activity == null || activity.getCreatorId() == null || !activity.getCreatorId().equals(inh.getId())) {
+            throw new BusinessException(CodeEnum.AUTH_ERROR, "仅能管理本人活动的报名");
+        }
+    }
+
     @Override
-    public PageResult<List<ActivityApplicationVO>> queryPage(Integer pageNum, Integer pageSize, String realName, String phone, Integer status) {
+    public PageResult<List<ActivityApplicationVO>> queryPage(Integer pageNum, Integer pageSize, String realName, String phone, Integer status, Integer activityCreatorAdminId) {
         IPage<ActivityApplication> page = new Page<>(pageNum, pageSize);
         QueryWrapper<ActivityApplication> queryWrapper = new QueryWrapper<>();
+
+        if (activityCreatorAdminId != null) {
+            QueryWrapper<Activity> aq = new QueryWrapper<>();
+            aq.eq("creator_id", activityCreatorAdminId);
+            List<Activity> acts = activityService.list(aq);
+            List<Integer> actIds = acts.stream().map(Activity::getId).collect(Collectors.toList());
+            if (actIds.isEmpty()) {
+                PageResult<List<ActivityApplicationVO>> empty = new PageResult<>();
+                empty.setRecords(Collections.emptyList());
+                empty.setTotal(0);
+                empty.setCurrent(pageNum);
+                empty.setSize(pageSize);
+                return empty;
+            }
+            queryWrapper.in("activity_id", actIds);
+        }
         
         if (StringUtils.hasText(realName)) {
             queryWrapper.like("real_name", realName);
@@ -159,7 +206,9 @@ public class ActivityApplicationServiceImpl extends ServiceImpl<ActivityApplicat
         if (application == null) {
             throw new BusinessException(CodeEnum.PARAMS_ERROR,  "报名记录不存在");
         }
-        
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertApplicationManagedBy(application);
+
         // 如果是通过审核，需要再次验证人数限制
         if (status == 1) {
             Activity activity = activityService.getById(application.getActivityId());
@@ -220,6 +269,7 @@ public class ActivityApplicationServiceImpl extends ServiceImpl<ActivityApplicat
             Activity activity = activityService.getById(activityApplication.getActivityId());
             if (activity != null) {
                 vo.setActivityTitle(activity.getTitle());
+                vo.setActivityCoverImage(activity.getCoverImage());
             }
         }
         

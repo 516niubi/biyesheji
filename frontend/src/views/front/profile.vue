@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { Picture as IconPicture } from "@element-plus/icons-vue";
 import Config from "../../config";
@@ -9,6 +10,7 @@ import useUserStore from "../../stores/userStore";
 import { getImageUrl } from "../../utils/system";
 
 const userStore = useUserStore();
+const router = useRouter();
 const form = ref({
   username: "",
   nickName: "",
@@ -142,6 +144,11 @@ onMounted(() => {
       </el-form-item>
     </el-form>
 
+    <div class="quick-links">
+      <el-button text type="primary" @click="router.push('/front/myCollect')">我的收藏</el-button>
+      <el-button text type="primary" @click="router.push('/front/myComments')">我的评论</el-button>
+    </div>
+
     <!-- 保存按钮 -->
     <div class="button-section">
       <el-button type="primary" @click="saveUserInfo">保存修改</el-button>
@@ -155,6 +162,14 @@ onMounted(() => {
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+
+  .quick-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    justify-content: center;
+  }
 
   .avatar-section {
     display: flex;

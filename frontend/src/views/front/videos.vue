@@ -79,6 +79,14 @@ onMounted(async () => {
 
 <template>
   <div class="videos-page">
+    <section class="page-hero">
+      <div class="page-hero-inner">
+        <p class="page-hero-tag">非遗宣传</p>
+        <h1 class="page-hero-title">影像里的非遗</h1>
+        <p class="page-hero-desc">纪录片与宣传片精选，用镜头记录技艺传承与当代风貌。</p>
+      </div>
+    </section>
+
     <!-- 搜索表单 -->
     <div class="search-section">
       <div class="search-form">
@@ -148,8 +156,64 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .videos-page {
+  --accent-color: #c53d2e;
+  --bg-primary: #ffffff;
+  --text-primary: #1f1a17;
+  --text-secondary: #5c534c;
+  --shadow-light: 0 8px 28px rgba(31, 26, 23, 0.08);
   min-height: 100vh;
   padding: 0;
+}
+
+.page-hero {
+  background: linear-gradient(120deg, #2c1f4a 0%, #4a3f7a 40%, #7c6ba8 100%);
+  color: #fff;
+  padding: 40px 24px 48px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 10%;
+    top: -40px;
+    width: 180px;
+    height: 180px;
+    border-radius: 40% 60% 55% 45%;
+    background: rgba(255, 255, 255, 0.08);
+    pointer-events: none;
+  }
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero-tag {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  font-weight: 600;
+}
+
+.page-hero-title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page-hero-desc {
+  margin: 0;
+  max-width: 36em;
+  font-size: 15px;
+  line-height: 1.65;
+  opacity: 0.92;
 }
 
 // 搜索区域
@@ -160,6 +224,7 @@ onMounted(async () => {
   position: relative;
   z-index: 2;
   border-radius: 20px 20px 0 0;
+  margin-top: -20px;
   
   .search-form {
     max-width: 1200px;

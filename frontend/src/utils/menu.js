@@ -7,6 +7,10 @@ export const roles = [
     label: "用户",
     value: "user",
   },
+  {
+    label: "非遗传承人",
+    value: "inheritor",
+  },
 ];
 
 export const menuList = [
@@ -57,52 +61,22 @@ export const menuList = [
             buttons: ["新增", "编辑", "删除"],
           },
           {
-            name: "非遗文物管理",
-            path: "/culturalHeritage",
-            tableName: "culturalHeritage",
-            buttons: ["新增", "编辑", "删除"],
-          },
-          {
-            name: "宣传视频管理",
-            path: "/video",
-            tableName: "video",
-            buttons: ["新增", "编辑", "删除"],
-          },
-          {
-            name: "资讯管理",
-            path: "/article",
-            tableName: "article",
-            buttons: ["新增", "编辑", "删除"],
-          },
-          {
             name: "反馈管理",
             path: "/feedback",
             tableName: "feedback",
             buttons: ["删除"],
           },
           {
+            name: "传承人私信",
+            path: "/privateMessage",
+            tableName: "",
+            buttons: [],
+          },
+          {
             name: "收藏管理",
             path: "/collect",
             tableName: "collect",
             buttons: ["删除"],
-          },
-          {
-            name: "评论管理",
-            path: "/comment",
-            tableName: "comment",
-            buttons: ["删除"],
-          },
-          {
-            name: "活动管理",
-            path: "/activity",
-            tableName: "activity",
-            buttons: ["新增", "编辑", "删除"],
-          },
-          {
-            name: "活动报名管理",
-            path: "/activityApplication",
-            tableName: "activityApplication",
-            buttons: ["删除", "审核"],
           },
         ],
       },
@@ -129,6 +103,94 @@ export const menuList = [
             path: "/admin",
             tableName: "admin",
             buttons: ["新增", "编辑", "删除"],
+          },
+          {
+            name: "传承人审核",
+            path: "/inheritorAudit",
+            tableName: "inheritorAudit",
+            buttons: ["审核"],
+          },
+          {
+            name: "传承人管理",
+            path: "/inheritorCertified",
+            tableName: "inheritorCertified",
+            buttons: ["编辑", "删除"],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    roleFlag: "inheritor",
+    name: "传承人工作台",
+    backMenu: [
+      {
+        name: "首页",
+        path: "/home",
+        icon: "HomeFilled",
+        tableName: "",
+        buttons: [],
+      },
+      {
+        name: "内容工作室",
+        path: "/studio",
+        icon: "Document",
+        children: [
+          {
+            name: "非遗文物",
+            path: "/studio/heritage",
+            tableName: "culturalHeritage",
+            buttons: ["新增", "编辑", "删除"],
+          },
+          {
+            name: "宣传视频",
+            path: "/studio/video",
+            tableName: "video",
+            buttons: ["新增", "编辑", "删除"],
+          },
+          {
+            name: "资讯",
+            path: "/studio/article",
+            tableName: "article",
+            buttons: ["新增", "编辑", "删除"],
+          },
+          {
+            name: "评论",
+            path: "/studio/comment",
+            tableName: "comment",
+            buttons: ["编辑", "删除"],
+          },
+          {
+            name: "活动",
+            path: "/studio/activity",
+            tableName: "activity",
+            buttons: ["新增", "编辑", "删除"],
+          },
+          {
+            name: "活动报名",
+            path: "/studio/application",
+            tableName: "activityApplication",
+            buttons: ["删除", "审核"],
+          },
+          {
+            name: "私信",
+            path: "/studio/privateMessage",
+            tableName: "",
+            buttons: [],
+          },
+        ],
+      },
+      {
+        name: "账号管理",
+        path: "/account",
+        icon: "User",
+        children: [
+          {
+            name: "个人信息",
+            path: "/person",
+            icon: "",
+            tableName: "person",
+            buttons: [],
           },
         ],
       },

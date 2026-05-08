@@ -169,6 +169,11 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback> i
 
     @Override
     public PageResult<List<FeedbackVO>> pageByUserId(Integer pageNum, Integer pageSize, String title, Integer status, Integer userId) {
+        Integer currentUserId = (Integer) StpUtil.getSession().get(LoginConstant.USER_ID);
+        if (currentUserId == null) {
+            throw new BusinessException(CodeEnum.NOT_LOGIN);
+        }
+
         QueryWrapper<Feedback> queryWrapper = new QueryWrapper<>();
         if (CharSequenceUtil.isNotBlank(title)) {
             queryWrapper.like("title", title);
@@ -176,9 +181,8 @@ public class FeedbackServiceImpl extends ServiceImpl<FeedbackMapper, Feedback> i
         if (status != null) {
             queryWrapper.eq("status", status);
         }
-        if (status != null) {
-            queryWrapper.eq("user_id", userId);
-        }
+        // 前台查询强制只返回当前登录用户的反馈
+        queryWrapper.eq("user_id", currentUserId);
         // ID 降序
         queryWrapper.orderByDesc("id");
         Page<Feedback> page = page(new Page<>(pageNum, pageSize), queryWrapper);

@@ -2,6 +2,7 @@ import axios from "axios";
 import Config from "@/config";
 import { ElMessage } from "element-plus";
 import router from "@/router";
+import { getStoredToken } from "@/utils/authToken";
 
 // 创建axios实例
 const http = axios.create({
@@ -16,8 +17,7 @@ const http = axios.create({
 // 请求拦截器
 http.interceptors.request.use(
   (config) => {
-    // 从localStorage获取token
-    const token = localStorage.getItem("token");
+    const token = getStoredToken();
     if (token) {
       config.headers["Authorization"] = token;
     }

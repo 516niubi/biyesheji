@@ -22,16 +22,29 @@ const params = ref({ ...initParams })
 
 // 数据
 const heritageList = ref([])
+const categoryList = ref([])
 const total = ref(0)
 const loading = ref(false)
+
+const getCategoryList = async () => {
+  try {
+    const res = await http.get('/ichType/list')
+    if (res.code === 200) {
+      categoryList.value = res.data || []
+    }
+  } catch (error) {
+    console.error('获取分类失败:', error)
+  }
+}
 
 // 获取非遗文物列表
 const getHeritageList = async () => {
   loading.value = true
   try {
-    const res = await http.get(
-      `/culturalHeritage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&name=${params.value.name}`
-    )
+    let url = `/culturalHeritage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}`
+    if (params.value.name) url += `&name=${encodeURIComponent(params.value.name)}`
+    if (params.value.categoryId) url += `&categoryId=${params.value.categoryId}`
+    const res = await http.get(url)
     if (res.code === 200) {
       heritageList.value = res.data.records.map(item => {
         item.coverImage = getImageUrl(item.coverImage)
@@ -76,12 +89,23 @@ const handleCurrentChange = (val: number) => {
 const hasData = computed(() => heritageList.value.length > 0)
 
 onMounted(async () => {
+  await getCategoryList()
   await getHeritageList()
 })
 </script>
 
 <template>
   <div class="heritage-page">
+    <section class="page-hero">
+      <div class="page-hero-inner">
+        <p class="page-hero-tag">非遗文物</p>
+        <h1 class="page-hero-title">非遗文化专题</h1>
+        <p class="page-hero-desc">
+          图文档案与分类检索一站浏览，读懂每一项非遗背后的传承与故事。
+        </p>
+      </div>
+    </section>
+
     <!-- 搜索表单 -->
     <div class="search-section">
       <div class="search-form">
@@ -93,6 +117,22 @@ onMounted(async () => {
             clearable
             class="search-input"
           />
+        </div>
+        <div class="form-item">
+          <label class="form-label">类型：</label>
+          <el-select
+            v-model="params.categoryId"
+            placeholder="请选择非遗文物类型"
+            clearable
+            class="search-select"
+          >
+            <el-option
+              v-for="item in categoryList"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+          </el-select>
         </div>
         <div class="form-actions">
           <el-button type="primary" :icon="Search" @click="handleSearch" :loading="loading">
@@ -172,19 +212,70 @@ onMounted(async () => {
 
 .heritage-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   padding: 0;
+}
+
+.page-hero {
+  background: linear-gradient(120deg, #3f1214 0%, #6e1f22 34%, #9a322c 68%, #b84a3c 100%);
+  color: #fff;
+  padding: 40px 24px 48px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -80px;
+    top: -60px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero-tag {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.page-hero-title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page-hero-desc {
+  margin: 0;
+  max-width: 38em;
+  font-size: 15px;
+  line-height: 1.65;
+  opacity: 0.92;
 }
 
 // 搜索区域
 .search-section {
   background: var(--bg-primary);
   padding: 32px 0;
-  box-shadow: var(--shadow-light);
+  box-shadow: 0 8px 28px rgba(31, 26, 23, 0.08);
   position: relative;
   z-index: 2;
   border-radius: 20px 20px 0 0;
-  
+  margin-top: -20px;
+
   .search-form {
     max-width: 1200px;
     margin: 0 auto;
@@ -331,7 +422,7 @@ onMounted(async () => {
   
   .search-section {
     padding: 24px 0;
-    margin-top: -30px;
+    margin-top: -20px;
     
     .search-form {
       flex-direction: column;

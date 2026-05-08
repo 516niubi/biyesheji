@@ -72,7 +72,7 @@ const statusDict = {
 // 获取表格数据
 const getTableData = async () => {
   const res = await http.get(
-    `/activity/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&title=${params.value.title}`
+    `/activity/manage/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&title=${params.value.title}`
   );
   if (res.code === 200) {
     tableData.value = res.data.records;
@@ -139,6 +139,43 @@ const handleSelectionChange = (selection) => {
 
 // 确认按钮
 const submit = async () => {
+  if (!form.value.title?.trim()) {
+    ElMessage.warning("请填写活动标题");
+    return;
+  }
+  if (!form.value.content?.trim()) {
+    ElMessage.warning("请填写活动内容");
+    return;
+  }
+  if (!form.value.startTime) {
+    ElMessage.warning("请选择开始时间");
+    return;
+  }
+  if (!form.value.endTime) {
+    ElMessage.warning("请选择结束时间");
+    return;
+  }
+  if (new Date(form.value.startTime).getTime() > new Date(form.value.endTime).getTime()) {
+    ElMessage.warning("结束时间不能早于开始时间");
+    return;
+  }
+  if (!form.value.address?.trim()) {
+    ElMessage.warning("请填写活动地址");
+    return;
+  }
+  if (!form.value.maxPeople || form.value.maxPeople <= 0) {
+    ElMessage.warning("最大人数必须大于0");
+    return;
+  }
+  if (form.value.status === undefined || form.value.status === null) {
+    ElMessage.warning("请选择活动状态");
+    return;
+  }
+  if (!form.value.coverImage) {
+    ElMessage.warning("请上传封面图片");
+    return;
+  }
+
   if (isEdit.value) {
     const res = await http.post(`/activity/edit?id=${form.value.id}`, form.value);
     if (res.code === 200) {

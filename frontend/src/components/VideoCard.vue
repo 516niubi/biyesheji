@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { VideoPlay } from '@element-plus/icons-vue'
+import { ElIcon } from 'element-plus'
 import { getImageUrl } from '../utils/system'
 import { useRouter } from 'vue-router'
+import PublisherInheritorRow from './PublisherInheritorRow.vue'
 
 // 定义 props
 interface VideoProps {
@@ -12,6 +15,9 @@ interface VideoProps {
     coverUrl?: string
     viewCount: number
     createTime: string
+    publisherName?: string
+    publisherAvatar?: string
+    creatorId?: number | null
   }
   size?: 'large' | 'small'
 }
@@ -76,7 +82,7 @@ const cardClass = computed(() => {
           loading="lazy"
         />
         <div v-else class="no-cover">
-          <Play class="play-icon" />
+          <el-icon class="play-icon" :size="48"><VideoPlay /></el-icon>
         </div>
       </div>
       
@@ -96,6 +102,15 @@ const cardClass = computed(() => {
     <div class="video-info">
       <h3 class="video-title">{{ video.title }}</h3>
       <div class="video-meta">
+        <div class="publisher-cell" @click.stop>
+          <PublisherInheritorRow
+            :inheritor-id="video.creatorId"
+            :name="video.publisherName || '平台'"
+            :avatar="video.publisherAvatar"
+            :size="32"
+            :show-caption="false"
+          />
+        </div>
         <span class="create-time">{{ formatDate(video.createTime) }}</span>
       </div>
     </div>
@@ -152,8 +167,7 @@ const cardClass = computed(() => {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       
       .play-icon {
-        font-size: 48px;
-        color: rgba(255, 255, 255, 0.8);
+        color: rgba(255, 255, 255, 0.88);
       }
     }
   }
@@ -231,11 +245,24 @@ const cardClass = computed(() => {
   .video-meta {
     display: flex;
     align-items: center;
-    gap: 12px;
-    
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+
+    .publisher-cell {
+      flex: 1;
+      min-width: 0;
+    }
+
     .create-time {
       font-size: 13px;
       color: var(--text-secondary);
+      margin-left: auto;
+    }
+
+    :deep(.publisher-name) {
+      font-size: 13px;
     }
   }
 }

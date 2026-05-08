@@ -88,7 +88,6 @@ const goToLogin = () => {
       <div class="register-left">
         <div class="left-overlay"></div>
         <div class="left-content">
-          <img src="@/assets/logo.png" alt="系统Logo" class="logo" />
           <h2 class="system-name">{{ config.frontName }}</h2>
           <p class="welcome-text">{{ config.welcome }}</p>
         </div>
@@ -152,7 +151,7 @@ const goToLogin = () => {
               <span>已有账号？</span>
               <el-button type="text" @click="goToLogin">立即登录</el-button>
             </div>
-            <p class="copyright">© 2023 {{ config.frontName }} 版权所有</p>
+
           </div>
         </div>
       </div>
@@ -266,13 +265,6 @@ const goToLogin = () => {
   color: white;
   text-align: center;
   padding: 0 40px;
-}
-
-.left-content .logo {
-  width: 120px;
-  height: 120px;
-  border-radius: 6px;
-  margin-bottom: 20px;
 }
 
 .left-content .system-name {

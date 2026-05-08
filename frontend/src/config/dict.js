@@ -6,6 +6,7 @@ export const genderDict = {
 
 export const roleDict = {
   admin: "管理员",
+  inheritor: "非遗传承人",
   user: "用户",
   test: "测试",
 };

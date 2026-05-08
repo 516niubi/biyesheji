@@ -13,8 +13,7 @@ const initParams = {
   pageNum: 1,
   pageSize: 10,
   title: "",
-  status: null,
-  userId: userStore.userInfo.id
+  status: null
 };
 
 // 搜索条件

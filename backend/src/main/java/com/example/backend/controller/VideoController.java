@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.example.backend.common.model.PageResult;
+import com.example.backend.utils.BackendAuthHelper;
 import com.example.backend.common.result.BaseResponse;
 import com.example.backend.common.result.Result;
 import com.example.backend.entity.vo.video.VideoVO;
@@ -57,22 +59,37 @@ public class VideoController {
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/page")
     public BaseResponse<PageResult<List<VideoVO>>> page(
             @RequestParam Integer pageNum,
             @RequestParam Integer pageSize,
-            @RequestParam(required = false) String title
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Integer creatorId
     ) {
-        PageResult<List<VideoVO>> res = videoService.queryPage(pageNum, pageSize, title);
+        PageResult<List<VideoVO>> res = videoService.queryPage(pageNum, pageSize, title, creatorId);
         return Result.success(res);
     }
 
+    @GetMapping("/manage/page")
+    public BaseResponse<PageResult<List<VideoVO>>> managePage(
+            @RequestParam Integer pageNum,
+            @RequestParam Integer pageSize,
+            @RequestParam(required = false) String title
+    ) {
+        Integer scope = BackendAuthHelper.inheritorCreatorScopeOrNull();
+        PageResult<List<VideoVO>> res = videoService.queryPage(pageNum, pageSize, title, scope);
+        return Result.success(res);
+    }
+
+    @SaIgnore
     @GetMapping("/list")
     public BaseResponse<List<Video>> all() {
         List<Video> res = videoService.getAll();
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/getById")
     public BaseResponse<Video> getById(@RequestParam Integer id) {
         Video res = videoService.getByIdDetail(id);

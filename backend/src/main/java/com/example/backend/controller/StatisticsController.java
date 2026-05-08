@@ -40,6 +40,12 @@ public class StatisticsController {
     @Resource
     private IActivityService activityService;
 
+    @Resource
+    private IInheritorService inheritorService;
+
+    /** 传承人审核通过状态，与 InheritorServiceImpl 一致 */
+    private static final int INHERITOR_STATUS_APPROVED = 1;
+
     /**
      * 获取系统重要数据量统计
      */
@@ -63,6 +69,12 @@ public class StatisticsController {
         // 活动数量
         long activityCount = activityService.count();
         result.put("activityCount", activityCount);
+
+        // 非遗传承人（审核通过）
+        QueryWrapper<Inheritor> inheritorApproved = new QueryWrapper<>();
+        inheritorApproved.eq("status", INHERITOR_STATUS_APPROVED);
+        long inheritorCount = inheritorService.count(inheritorApproved);
+        result.put("inheritorCount", inheritorCount);
         
         return Result.success(result);
     }
@@ -79,6 +91,7 @@ public class StatisticsController {
         List<Integer> videoData = new ArrayList<>();
         List<Integer> userData = new ArrayList<>();
         List<Integer> activityData = new ArrayList<>();
+        List<Integer> inheritorData = new ArrayList<>();
         
         // 获取最近7天的日期
         LocalDate today = LocalDate.now();
@@ -113,6 +126,11 @@ public class StatisticsController {
             activityWrapper.apply("DATE(create_time) = '" + dateStr + "'");
             int activityCount = (int) activityService.count(activityWrapper);
             activityData.add(activityCount);
+
+            QueryWrapper<Inheritor> inheritorWrapper = new QueryWrapper<>();
+            inheritorWrapper.apply("DATE(create_time) = '" + dateStr + "'");
+            int inheritorDayCount = (int) inheritorService.count(inheritorWrapper);
+            inheritorData.add(inheritorDayCount);
         }
         
         result.put("dates", dates);
@@ -120,6 +138,7 @@ public class StatisticsController {
         result.put("videoData", videoData);
         result.put("userData", userData);
         result.put("activityData", activityData);
+        result.put("inheritorData", inheritorData);
         
         return Result.success(result);
     }
@@ -131,7 +150,7 @@ public class StatisticsController {
     @GetMapping("/bar-chart")
     public BaseResponse<Map<String, Object>> getBarChartData() {
         Map<String, Object> result = new HashMap<>();
-        List<String> categories = Arrays.asList("非遗文物", "宣传视频", "注册用户", "活动数量");
+        List<String> categories = Arrays.asList("非遗文物", "宣传视频", "注册用户", "活动数量", "非遗传承人");
         List<Integer> data = new ArrayList<>();
         
         // 获取各类型数据总数
@@ -139,6 +158,9 @@ public class StatisticsController {
         data.add((int) videoService.count());
         data.add((int) userService.count());
         data.add((int) activityService.count());
+        QueryWrapper<Inheritor> inheritorBar = new QueryWrapper<>();
+        inheritorBar.eq("status", INHERITOR_STATUS_APPROVED);
+        data.add((int) inheritorService.count(inheritorBar));
         
         result.put("categories", categories);
         result.put("data", data);

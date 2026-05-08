@@ -48,6 +48,11 @@ public class AdminVO implements Serializable {
     private Integer status;
 
     /**
+     * 角色 admin / inheritor
+     */
+    private String role;
+
+    /**
      * 创建时间
      */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone="GMT+8")

@@ -13,6 +13,10 @@ import com.example.backend.service.IVideoService;
 import com.example.backend.common.model.PageResult;
 import com.example.backend.exception.BusinessException;
 import com.example.backend.common.enums.CodeEnum;
+import com.example.backend.entity.Inheritor;
+import com.example.backend.utils.BackendAuthHelper;
+import com.example.backend.utils.PublisherNameResolver;
+import com.example.backend.utils.PublisherNameResolver.PublisherView;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +38,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     @Resource
     private VideoMapper videoMapper;
 
+    @Resource
+    private PublisherNameResolver publisherNameResolver;
+
     /**
      * 新增
      *
@@ -42,8 +49,15 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
      */
     @Override
     public Integer add(Video request) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
         Video saveData = new Video();
         BeanUtils.copyProperties(request, saveData);
+        if (inh != null) {
+            saveData.setCreatorId(inh.getId());
+        } else {
+            saveData.setCreatorId(null);
+        }
         saveData.setCreateTime(new Date());
         saveData.setUpdateTime(new Date());
         if (saveData.getViewCount() == null) {
@@ -61,6 +75,25 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
      */
     @Override
     public Boolean batchAdd(List<Video> request) {
+        BackendAuthHelper.requireAdminOrInheritor();
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        Date now = new Date();
+        for (Video v : request) {
+            if (inh != null) {
+                v.setCreatorId(inh.getId());
+            } else {
+                v.setCreatorId(null);
+            }
+            if (v.getCreateTime() == null) {
+                v.setCreateTime(now);
+            }
+            if (v.getUpdateTime() == null) {
+                v.setUpdateTime(now);
+            }
+            if (v.getViewCount() == null) {
+                v.setViewCount(0);
+            }
+        }
         return saveBatch(request);
     }
 
@@ -75,6 +108,12 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         if (id == null || id <= 0) {
             throw new BusinessException(CodeEnum.PARAMS_ERROR);
         }
+        Video row = videoMapper.selectById(id);
+        if (row == null) {
+            throw new BusinessException(CodeEnum.PARAMS_ERROR, "数据不存在");
+        }
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertVideoOwned(row);
         return removeById(id);
     }
 
@@ -88,6 +127,13 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
     public Boolean batchDel(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) {
             throw new BusinessException(CodeEnum.PARAMS_ERROR);
+        }
+        BackendAuthHelper.requireAdminOrInheritor();
+        for (Integer id : ids) {
+            Video row = videoMapper.selectById(id);
+            if (row != null) {
+                assertVideoOwned(row);
+            }
         }
         return removeByIds(ids);
     }
@@ -105,7 +151,12 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         if (findData == null) {
             throw new BusinessException(CodeEnum.SYSTEM_ERROR);
         }
+        BackendAuthHelper.requireAdminOrInheritor();
+        assertVideoOwned(findData);
+        Integer preservedCreator = findData.getCreatorId();
         BeanUtils.copyProperties(request, findData);
+        findData.setCreatorId(preservedCreator);
+        findData.setId(id);
         findData.setUpdateTime(new Date());
         return updateById(findData);
     }
@@ -115,11 +166,24 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
      *
      * @return
      */
+    private void assertVideoOwned(Video row) {
+        Inheritor inh = BackendAuthHelper.tryLoginInheritor();
+        if (inh == null) {
+            return;
+        }
+        if (row.getCreatorId() == null || !row.getCreatorId().equals(inh.getId())) {
+            throw new BusinessException(CodeEnum.AUTH_ERROR, "仅能管理本人发布的视频");
+        }
+    }
+
     @Override
-    public PageResult<List<VideoVO>> queryPage(Integer pageNum, Integer pageSize, String title) {
+    public PageResult<List<VideoVO>> queryPage(Integer pageNum, Integer pageSize, String title, Integer creatorIdFilter) {
         QueryWrapper<Video> queryWrapper = new QueryWrapper<>();
         if (CharSequenceUtil.isNotBlank(title)) {
             queryWrapper.like("title", title);
+        }
+        if (creatorIdFilter != null) {
+            queryWrapper.eq("creator_id", creatorIdFilter);
         }
         // ID 降序
         queryWrapper.orderByDesc("id");
@@ -138,6 +202,9 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
         return videos.stream().map(video -> {
             VideoVO videoVO = new VideoVO();
             BeanUtil.copyProperties(video, videoVO);
+            PublisherView pv = publisherNameResolver.resolveView(video.getCreatorId());
+            videoVO.setPublisherName(pv.getName());
+            videoVO.setPublisherAvatar(pv.getAvatar());
             return videoVO;
         }).collect(Collectors.toList());
     }
@@ -160,12 +227,15 @@ public class VideoServiceImpl extends ServiceImpl<VideoMapper, Video> implements
      */
     @Override
     public Video getByIdDetail(Integer id) {
-        // 增加视频浏览量
         Video video = getById(id);
         if (video != null) {
-            video.setViewCount(video.getViewCount() + 1);
+            int vc = video.getViewCount() == null ? 0 : video.getViewCount();
+            video.setViewCount(vc + 1);
             updateById(video);
+            PublisherView pv = publisherNameResolver.resolveView(video.getCreatorId());
+            video.setPublisherName(pv.getName());
+            video.setPublisherAvatar(pv.getAvatar());
         }
-        return getById(id);
+        return video;
     }
 }

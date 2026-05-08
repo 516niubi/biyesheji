@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { ElMessage } from "element-plus";
 
 const routes = [
   {
     path: "/",
     name: "Layout",
-    redirect: "/home",
+    redirect: "/front/home",
     component: () => import("../layouts/index.vue"),
     meta: {
       title: "入口",
@@ -32,6 +33,22 @@ const routes = [
         component: () => import("@/views/system/admin.vue"),
         meta: {
           title: "管理员管理",
+        },
+      },
+      {
+        path: "/inheritorAudit",
+        name: "InheritorAudit",
+        component: () => import("@/views/system/inheritor-audit.vue"),
+        meta: {
+          title: "传承人审核",
+        },
+      },
+      {
+        path: "/inheritorCertified",
+        name: "InheritorCertified",
+        component: () => import("@/views/system/inheritor-certified.vue"),
+        meta: {
+          title: "传承人管理",
         },
       },
       {
@@ -99,6 +116,14 @@ const routes = [
         },
       },
       {
+        path: "/privateMessage",
+        name: "PrivateMessageAdmin",
+        component: () => import("@/views/system/private-message.vue"),
+        meta: {
+          title: "传承人私信",
+        },
+      },
+      {
         path: "/collect",
         name: "Collect",
         component: () => import("@/views/system/collect.vue"),
@@ -138,6 +163,58 @@ const routes = [
           title: "数据统计",
         },
       },
+      {
+        path: "/studio",
+        component: () => import("@/layouts/InheritorStudioLayout.vue"),
+        redirect: "/studio/heritage",
+        meta: {
+          title: "内容工作室",
+        },
+        children: [
+          {
+            path: "heritage",
+            name: "StudioHeritage",
+            component: () => import("@/views/inheritor-studio/StudioHeritage.vue"),
+            meta: { title: "非遗文物" },
+          },
+          {
+            path: "video",
+            name: "StudioVideo",
+            component: () => import("@/views/inheritor-studio/StudioVideo.vue"),
+            meta: { title: "宣传视频" },
+          },
+          {
+            path: "article",
+            name: "StudioArticle",
+            component: () => import("@/views/inheritor-studio/StudioArticle.vue"),
+            meta: { title: "资讯管理" },
+          },
+          {
+            path: "activity",
+            name: "StudioActivity",
+            component: () => import("@/views/inheritor-studio/StudioActivity.vue"),
+            meta: { title: "活动管理" },
+          },
+          {
+            path: "comment",
+            name: "StudioComment",
+            component: () => import("@/views/inheritor-studio/StudioComment.vue"),
+            meta: { title: "评论管理" },
+          },
+          {
+            path: "application",
+            name: "StudioActivityApplication",
+            component: () => import("@/views/inheritor-studio/StudioActivityApplication.vue"),
+            meta: { title: "活动报名" },
+          },
+          {
+            path: "privateMessage",
+            name: "StudioPrivateMessage",
+            component: () => import("@/views/inheritor-studio/StudioPrivateMessage.vue"),
+            meta: { title: "私信" },
+          },
+        ],
+      },
     ],
   },
   {
@@ -158,6 +235,22 @@ const routes = [
         },
       },
       {
+        path: "/front/inheritors",
+        name: "FrontInheritors",
+        component: () => import("../views/front/inheritors-directory.vue"),
+        meta: {
+          title: "传承人名录",
+        },
+      },
+      {
+        path: "/front/inheritor/:id",
+        name: "FrontInheritorProfile",
+        component: () => import("../views/front/inheritor-public-profile.vue"),
+        meta: {
+          title: "传承人主页",
+        },
+      },
+      {
         path: "/front/heritage",
         name: "FrontHeritage",
         component: () => import("../views/front/heritage.vue"),
@@ -171,6 +264,7 @@ const routes = [
         component: () => import("../views/front/heritage-detail.vue"),
         meta: {
           title: "非遗文物详情",
+          requiresAuth: true,
         },
       },
       {
@@ -187,6 +281,7 @@ const routes = [
         component: () => import("../views/front/activity-detail.vue"),
         meta: {
           title: "活动详情",
+          requiresAuth: true,
         },
       },
       {
@@ -203,6 +298,7 @@ const routes = [
         component: () => import("../views/front/news-detail.vue"),
         meta: {
           title: "新闻资讯详情",
+          requiresAuth: true,
         },
       },
       {
@@ -219,6 +315,7 @@ const routes = [
         component: () => import("../views/front/videos-detail.vue"),
         meta: {
           title: "非遗宣传详情",
+          requiresAuth: true,
         },
       },
       {
@@ -227,6 +324,7 @@ const routes = [
         component: () => import("../views/front/feedback.vue"),
         meta: {
           title: "反馈",
+          requiresAuth: true,
         },
       },
       {
@@ -235,6 +333,7 @@ const routes = [
         component: () => import("../views/front/profile.vue"),
         meta: {
           title: "个人信息",
+          requiresAuth: true,
         },
       },
       {
@@ -243,6 +342,7 @@ const routes = [
         component: () => import("../views/front/my-applications.vue"),
         meta: {
           title: "我的报名",
+          requiresAuth: true,
         },
       },
       {
@@ -251,6 +351,25 @@ const routes = [
         component: () => import("../views/front/my-collect.vue"),
         meta: {
           title: "我的收藏",
+          requiresAuth: true,
+        },
+      },
+      {
+        path: "/front/myComments",
+        name: "FrontMyComments",
+        component: () => import("../views/front/my-comments.vue"),
+        meta: {
+          title: "我的评论",
+          requiresAuth: true,
+        },
+      },
+      {
+        path: "/front/inbox",
+        name: "FrontInbox",
+        component: () => import("../views/front/inbox.vue"),
+        meta: {
+          title: "私信",
+          requiresAuth: true,
         },
       },
     ],
@@ -272,6 +391,14 @@ const routes = [
     },
   },
   {
+    path: "/inheritorRegister",
+    name: "InheritorRegister",
+    component: () => import("../views/inheritor-register.vue"),
+    meta: {
+      title: "传承人注册",
+    },
+  },
+  {
     path: "/:pathMatch(.*)*",
     name: "NotFound",
     component: () => import("../views/notFound.vue"),
@@ -286,10 +413,31 @@ const router = createRouter({
   routes,
 });
 
+const getLocalToken = () => {
+  const token = localStorage.getItem("token");
+  if (token) return token;
+  const persistedUser = localStorage.getItem("user");
+  if (!persistedUser) return "";
+  try {
+    const parsed = JSON.parse(persistedUser);
+    return parsed?.token || "";
+  } catch {
+    return "";
+  }
+};
+
 // 全局前置守卫
 router.beforeEach((to, from, next) => {
   // 设置页面标题
   document.title = to.meta.title || "Vue App";
+  const isLoggedIn = !!getLocalToken();
+
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    ElMessage.warning("当前处于游客状态，无法访问");
+    next({ path: "/login", query: { redirect: to.fullPath } });
+    return;
+  }
+
   next();
 });
 

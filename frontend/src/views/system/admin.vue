@@ -25,7 +25,6 @@ const initForm = {
   gender: 0,
   avatar: "",
   profile: "",
-  roleFlag: "",
 };
 // 表单数据
 const form = ref({ ...initForm });
@@ -64,9 +63,8 @@ const imageUrl = ref(
 
 // 获取表格数据
 const getTableData = async () => {
-  const res = await http.get(
-    `/admin/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&username=${params.value.username}&nickName=${params.value.nickName}`
-  );
+  const url = `/admin/page?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}&username=${params.value.username}&nickName=${params.value.nickName}&role=admin`;
+  const res = await http.get(url);
   if (res.code === 200) {
     tableData.value = res.data.records;
     total.value = res.data.total;
@@ -211,14 +209,14 @@ onMounted(async () => {
     <main>
       <div class="flex op-box">
         <el-button
-          v-if="hasPermission('user', '新增')"
+          v-if="hasPermission('admin', '新增')"
           :icon="Plus"
           type="primary"
           @click="handleAdd"
           >新增</el-button
         >
         <el-button
-          v-if="hasPermission('user', '删除')"
+          v-if="hasPermission('admin', '删除')"
           :icon="Delete"
           type="danger"
           :disabled="!hasSelected"
@@ -240,6 +238,9 @@ onMounted(async () => {
           <template #default="scope">
             {{ genderDict[scope.row.gender] }}
           </template>
+        </el-table-column>
+        <el-table-column label="角色" width="100">
+          <template #default>管理员</template>
         </el-table-column>
         <el-table-column prop="avatar" label="头像" width="100">
           <template #default="scope">
@@ -272,14 +273,14 @@ onMounted(async () => {
         <el-table-column label="操作" fixed="right">
           <template #default="scope">
             <el-button
-              v-if="hasPermission('user', '编辑')"
+              v-if="hasPermission('admin', '编辑')"
               type="primary"
               :icon="Edit"
               @click="handleEdit(scope.row)"
               >编辑</el-button
             >
             <el-popconfirm
-              v-if="hasPermission('user', '删除')"
+              v-if="hasPermission('admin', '删除')"
               title="您确定要删除吗?"
               @confirm="delRow(scope.row.id)"
             >

@@ -116,6 +116,11 @@ const handleSelectionChange = (selection) => {
 
 // 确认按钮
 const submit = async () => {
+  if (!form.value.name?.trim()) {
+    ElMessage.warning("请填写分类名称");
+    return;
+  }
+
   if (isEdit.value) {
     const res = await http.post(`/ichType/edit?id=${form.value.id}`, form.value);
     if (res.code === 200) {

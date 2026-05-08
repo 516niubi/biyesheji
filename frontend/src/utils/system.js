@@ -2,9 +2,14 @@ import Config from "@/config";
 import { menuList } from "./menu";
 import useUserStore from "@/stores/userStore";
 
-/** 获取图片的全路径 */
+/** 获取图片的全路径（已是绝对地址时原样返回，避免重复拼接） */
 export const getImageUrl = (url) => {
-  return Config.baseUrl + url;
+  if (url == null || url === "") return "";
+  const s = String(url).trim();
+  if (/^https?:\/\//i.test(s) || s.startsWith("data:") || s.startsWith("blob:")) {
+    return s;
+  }
+  return Config.baseUrl + s;
 };
 
 /**

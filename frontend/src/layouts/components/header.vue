@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import { getImageUrl } from "../../utils/system";
 import http from "../../utils/http";
 import useUserStore from "../../stores/userStore";
-import { ref } from "vue";
+import { nextTick, ref } from "vue";
 import { ElMessage } from "element-plus";
 
 const props = defineProps({
@@ -58,14 +58,16 @@ const goPerson = () => {
   router.push("/person");
 };
 
-// 打开修改密码弹窗
+// 打开修改密码弹窗（nextTick 避免与下拉菜单同帧竞争；弹窗挂到 body 避免被侧栏/内容区裁切或叠层错误）
 const showPasswordDialog = () => {
-  passwordVisible.value = true;
   passwordForm.value = {
     oldPassword: "",
     newPassword: "",
     confirmPassword: "",
   };
+  nextTick(() => {
+    passwordVisible.value = true;
+  });
 };
 
 // 修改密码
@@ -75,7 +77,11 @@ const updatePassword = async () => {
   await passwordFormRef.value.validate(async (valid) => {
     if (valid) {
       try {
-        const res = await http.post("/admin/updatePass", {
+        const url =
+          userStore.roleFlag === "inheritor"
+            ? "/inheritor/updatePass"
+            : "/admin/updatePass";
+        const res = await http.post(url, {
           userId: userStore.userInfo.id,
           oldPass: passwordForm.value.oldPassword,
           password: passwordForm.value.newPassword,
@@ -132,12 +138,17 @@ const logout = async () => {
       </el-dropdown>
     </div>
 
-    <!-- 修改密码弹窗 -->
+    <!-- 修改密码弹窗：必须挂到 body，并提高 z-index，避免被内容区 backdrop-filter / 叠层压住 -->
     <el-dialog
       v-model="passwordVisible"
       title="修改密码"
-      width="400px"
+      width="420px"
+      align-center
+      append-to-body
+      destroy-on-close
       :close-on-click-modal="false"
+      class="ich-password-dialog"
+      :z-index="5000"
     >
       <el-form
         ref="passwordFormRef"
@@ -189,6 +200,9 @@ const logout = async () => {
   padding: 0 16px;
   background-color: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+  overflow: visible;
+  position: relative;
+  z-index: 10;
 
   .left {
     .collapse-btn {

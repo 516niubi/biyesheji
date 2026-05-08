@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.example.backend.common.model.PageResult;
 import com.example.backend.common.result.BaseResponse;
 import com.example.backend.common.result.Result;
@@ -57,6 +58,7 @@ public class NoticeController {
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/page")
     public BaseResponse<PageResult<List<NoticeVO>>> page(
             @RequestParam Integer pageNum,
@@ -67,12 +69,14 @@ public class NoticeController {
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/list")
     public BaseResponse<List<Notice>> all() {
         List<Notice> res = noticeService.getAll();
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/getById")
     public BaseResponse<Notice> getById(@RequestParam Integer id) {
         Notice res = noticeService.getByIdDetail(id);

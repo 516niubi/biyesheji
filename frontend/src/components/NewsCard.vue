@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { ElImage } from 'element-plus'
 import { getImageUrl } from '../utils/system'
 import { useRouter } from 'vue-router'
+import PublisherInheritorRow from './PublisherInheritorRow.vue'
 
 // 定义 props
 interface NewsItem {
@@ -12,6 +13,9 @@ interface NewsItem {
   coverUrl: string
   createTime?: string
   viewCount?: number
+  publisherName?: string
+  publisherAvatar?: string
+  creatorId?: number | null
 }
 
 interface Props {
@@ -71,9 +75,20 @@ const cardClass = computed(() => {
       <div class="news-content">
         <h3 class="news-title">{{ news.title }}</h3>
         <p class="news-summary">{{ news.intro }}</p>
-        <div class="news-meta" v-if="news.createTime">
-          <span class="news-date">{{ formatDate(news.createTime) }}</span>
-          <span class="news-views" v-if="news.viewCount">{{ news.viewCount }} 次浏览</span>
+        <div class="news-meta">
+          <div class="news-publisher-cell" @click.stop>
+            <PublisherInheritorRow
+              :inheritor-id="news.creatorId"
+              :name="news.publisherName || '平台'"
+              :avatar="news.publisherAvatar"
+              :size="34"
+              :show-caption="false"
+            />
+          </div>
+          <div class="news-meta-rest">
+            <span class="news-date" v-if="news.createTime">{{ formatDate(news.createTime) }}</span>
+            <span class="news-views" v-if="news.viewCount">{{ news.viewCount }} 次浏览</span>
+          </div>
         </div>
       </div>
     </template>
@@ -86,8 +101,17 @@ const cardClass = computed(() => {
       <div class="news-content">
         <h4 class="news-title">{{ news.title }}</h4>
         <p class="news-summary">{{ news.intro }}</p>
-        <div class="news-meta" v-if="news.createTime">
-          <span class="news-date">{{ formatDate(news.createTime) }}</span>
+        <div class="news-meta news-meta--small">
+          <div class="news-publisher-cell" @click.stop>
+            <PublisherInheritorRow
+              :inheritor-id="news.creatorId"
+              :name="news.publisherName || '平台'"
+              :avatar="news.publisherAvatar"
+              :size="28"
+              :show-caption="false"
+            />
+          </div>
+          <span v-if="news.createTime" class="news-date">{{ formatDate(news.createTime) }}</span>
         </div>
       </div>
     </template>
@@ -148,9 +172,26 @@ const cardClass = computed(() => {
       
       .news-meta {
         display: flex;
-        justify-content: space-between;
+        flex-wrap: wrap;
         align-items: center;
-        
+        gap: 10px 14px;
+        padding-top: 4px;
+        border-top: 1px solid rgba(0, 0, 0, 0.06);
+        margin-top: 4px;
+
+        .news-publisher-cell {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .news-meta-rest {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 12px;
+          margin-left: auto;
+        }
+
         .news-date {
           font-size: 12px;
           color: var(--text-secondary, #7f8c8d);
@@ -159,6 +200,10 @@ const cardClass = computed(() => {
         .news-views {
           font-size: 12px;
           color: var(--primary-color, #409eff);
+        }
+
+        :deep(.publisher-name) {
+          font-size: 13px;
         }
       }
     }
@@ -227,10 +272,30 @@ const cardClass = computed(() => {
       }
       
       .news-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: auto;
+
+        &.news-meta--small {
+          padding-top: 6px;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .news-publisher-cell {
+          min-width: 0;
+        }
+
         .news-date {
           font-size: 11px;
           color: var(--primary-color, #409eff);
           font-weight: 600;
+          margin-left: auto;
+        }
+
+        :deep(.publisher-name) {
+          font-size: 12px;
         }
       }
     }

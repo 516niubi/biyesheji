@@ -1,13 +1,16 @@
 package com.example.backend.service.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.example.backend.entity.Notice;
+import com.example.backend.entity.Admin;
 import com.example.backend.entity.User;
+import com.example.backend.common.constants.LoginConstant;
 import com.example.backend.entity.vo.notice.NoticeVO;
+import com.example.backend.mapper.AdminMapper;
 import com.example.backend.mapper.NoticeMapper;
 import com.example.backend.mapper.UserMapper;
 import com.example.backend.service.INoticeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.example.backend.utils.UserUtils;
 import org.springframework.stereotype.Service;
 import cn.hutool.core.text.CharSequenceUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -36,6 +39,8 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
     private NoticeMapper noticeMapper;
     @Resource
     private UserMapper userMapper;
+    @Resource
+    private AdminMapper adminMapper;
 
     /**
      * 新增
@@ -47,10 +52,10 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
     public Integer add(Notice request) {
         Notice saveData = new Notice();
         BeanUtils.copyProperties(request, saveData);
-        // 获取当前登录用户信息
-        User userInfo = UserUtils.getUserInfo();
-        if (userInfo != null) {
-            saveData.setUserId(userInfo.getId());
+        // 兼容管理员和用户登录，统一从会话中获取登录ID
+        Integer loginUserId = (Integer) StpUtil.getSession().get(LoginConstant.USER_ID);
+        if (loginUserId != null) {
+            saveData.setUserId(loginUserId);
         }
         noticeMapper.insert(saveData);
         return saveData.getId();
@@ -64,11 +69,10 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
      */
     @Override
     public Boolean batchAdd(List<Notice> request) {
-        // 获取当前登录用户信息
-        User userInfo = UserUtils.getUserInfo();
-        if (userInfo != null) {
+        Integer loginUserId = (Integer) StpUtil.getSession().get(LoginConstant.USER_ID);
+        if (loginUserId != null) {
             request.forEach(item -> {
-                item.setUserId(userInfo.getId());
+                item.setUserId(loginUserId);
             });
         }
         return saveBatch(request);
@@ -130,8 +134,8 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
         if (CharSequenceUtil.isNotBlank(title)) {
             queryWrapper.like("title", title);
         }
-        // ID 降序
-        queryWrapper.orderByDesc("id");
+        // 按更新时间和ID倒序，保证展示最新公告
+        queryWrapper.orderByDesc("update_time", "id");
         Page<Notice> page = page(new Page<>(pageNum, pageSize), queryWrapper);
         // 返回结果
         PageResult<List<NoticeVO>> pageResult = new PageResult<>();
@@ -174,10 +178,22 @@ public class NoticeServiceImpl extends ServiceImpl<NoticeMapper, Notice> impleme
             BeanUtils.copyProperties(notice, noticeVO);
             // 获取发布人信息
             if (notice.getUserId() != null) {
-                User user = userMapper.selectById(notice.getUserId());
-                if (user != null) {
-                    noticeVO.setPublishName(user.getNickName());
+                Admin admin = adminMapper.selectById(notice.getUserId());
+                if (admin != null) {
+                    noticeVO.setPublishName(
+                            CharSequenceUtil.isNotBlank(admin.getNickName()) ? admin.getNickName() : admin.getUsername()
+                    );
+                } else {
+                    User user = userMapper.selectById(notice.getUserId());
+                    if (user != null) {
+                        noticeVO.setPublishName(
+                                CharSequenceUtil.isNotBlank(user.getNickName()) ? user.getNickName() : user.getUsername()
+                        );
+                    }
                 }
+            }
+            if (CharSequenceUtil.isBlank(noticeVO.getPublishName())) {
+                noticeVO.setPublishName("系统");
             }
             list.add(noticeVO);
         }

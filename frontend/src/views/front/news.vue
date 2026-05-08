@@ -81,6 +81,14 @@ onMounted(async () => {
 
 <template>
   <div class="news-page">
+    <section class="page-hero">
+      <div class="page-hero-inner">
+        <p class="page-hero-tag">新闻资讯</p>
+        <h1 class="page-hero-title">非遗动态与政策速递</h1>
+        <p class="page-hero-desc">了解保护进展、行业资讯与地方实践，读懂非遗背后的故事。</p>
+      </div>
+    </section>
+
     <!-- 搜索表单 -->
     <div class="search-section">
       <div class="search-form">
@@ -159,8 +167,64 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .news-page {
+  --accent-color: #c53d2e;
+  --bg-primary: #ffffff;
+  --text-primary: #1f1a17;
+  --text-secondary: #5c534c;
+  --shadow-light: 0 8px 28px rgba(31, 26, 23, 0.08);
   min-height: 100vh;
   padding: 0;
+}
+
+.page-hero {
+  background: linear-gradient(120deg, #1a3a2f 0%, #2d6a4f 45%, #40916c 100%);
+  color: #fff;
+  padding: 40px 24px 48px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: -60px;
+    bottom: -100px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+  }
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero-tag {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  font-weight: 600;
+}
+
+.page-hero-title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page-hero-desc {
+  margin: 0;
+  max-width: 38em;
+  font-size: 15px;
+  line-height: 1.65;
+  opacity: 0.92;
 }
 
 // 搜索区域
@@ -171,6 +235,7 @@ onMounted(async () => {
   position: relative;
   z-index: 2;
   border-radius: 20px 20px 0 0;
+  margin-top: -20px;
   
   .search-form {
     max-width: 1200px;

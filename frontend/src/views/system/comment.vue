@@ -1,24 +1,23 @@
 <script setup lang="ts">
 import http from "../../utils/http";
-import { Search, Refresh, Delete } from "@element-plus/icons-vue";
+import { Search, Refresh, Delete, Edit } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import { computed, onMounted, ref } from "vue";
 import { hasPermission } from "../../utils/system";
 
 const initParams = {
   pageNum: 1,
-  pageSize: 10
+  pageSize: 10,
+  userName: "",
 };
 
-// 搜索条件
 const params = ref({ ...initParams });
-
-// 表格数据
 const tableData = ref([]);
-// 表格数据总数
 const total = ref(0);
 
-// 批量删除相关
+const editVisible = ref(false);
+const editForm = ref({ id: 0, content: "" });
+
 const multipleSelection = ref([]);
 const selectedIds = computed(() => {
   return multipleSelection.value.map((item) => item.id);
@@ -27,10 +26,11 @@ const hasSelected = computed(() => {
   return multipleSelection.value.length > 0;
 });
 
-// 获取表格数据
 const getTableData = async () => {
-  let url = `/comment/selectPage?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}`;
-  
+  let url = `/comment/manage/selectPage?pageNum=${params.value.pageNum}&pageSize=${params.value.pageSize}`;
+  if (params.value.userName) {
+    url += `&userName=${encodeURIComponent(params.value.userName)}`;
+  }
   const res = await http.get(url);
   if (res.code === 200) {
     tableData.value = res.data.records;
@@ -38,20 +38,34 @@ const getTableData = async () => {
   }
 };
 
-// 搜索
 const handleSearch = async () => {
   await getTableData();
 };
 
-// 重置搜索
 const handleReset = () => {
   params.value = { ...initParams };
   getTableData();
 };
 
-// 删除
+const openEdit = (row: { id: number; content: string }) => {
+  editForm.value = { id: row.id, content: row.content || "" };
+  editVisible.value = true;
+};
+
+const submitEdit = async () => {
+  const res = await http.put("/comment/update", {
+    id: editForm.value.id,
+    content: editForm.value.content,
+  });
+  if (res.code === 200) {
+    ElMessage.success("修改成功");
+    editVisible.value = false;
+    await getTableData();
+  }
+};
+
 const delRow = async (id: number) => {
-  const res = await http.get(`/comment/del?id=${id}`);
+  const res = await http.delete(`/comment/delete/${id}`);
   if (res.code === 200) {
     ElMessage.success("删除成功");
     await getTableData();
@@ -60,13 +74,14 @@ const delRow = async (id: number) => {
   }
 };
 
-// 批量删除
 const batchDel = async () => {
   if (multipleSelection.value.length === 0) {
     ElMessage.warning("请先选择要删除的数据");
     return;
   }
-  const res = await http.post("/comment/batchDel", selectedIds.value);
+  const res = await http.delete("/comment/delete/batch", {
+    data: selectedIds.value,
+  });
   if (res.code === 200) {
     ElMessage.success("批量删除成功");
     multipleSelection.value = [];
@@ -76,7 +91,6 @@ const batchDel = async () => {
   }
 };
 
-// 多选
 const handleSelectionChange = (selection) => {
   multipleSelection.value = selection;
 };
@@ -98,6 +112,14 @@ onMounted(async () => {
 
 <template>
   <div>
+    <header class="flex header-row">
+      <div class="flex form-item">
+        <p class="label-text">用户名：</p>
+        <el-input v-model="params.userName" placeholder="昵称模糊查询" clearable />
+      </div>
+      <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+      <el-button type="warning" :icon="Refresh" @click="handleReset">重置</el-button>
+    </header>
     <main>
       <div class="flex op-box">
         <el-button
@@ -109,7 +131,6 @@ onMounted(async () => {
           >批量删除</el-button
         >
       </div>
-      <!-- 表格 -->
       <el-table
         :data="tableData"
         border
@@ -121,8 +142,16 @@ onMounted(async () => {
         <el-table-column prop="content" label="评论内容" show-overflow-tooltip />
         <el-table-column prop="createTime" label="评论时间" width="180" />
         <el-table-column prop="updateTime" label="更新时间" width="180" />
-        <el-table-column label="操作" fixed="right" width="120">
+        <el-table-column label="操作" fixed="right" width="200">
           <template #default="scope">
+            <el-button
+              v-if="hasPermission('comment', '编辑')"
+              type="primary"
+              :icon="Edit"
+              link
+              @click="openEdit(scope.row)"
+              >编辑</el-button
+            >
             <el-popconfirm
               title="您确定要删除吗?"
               @confirm="delRow(scope.row.id)"
@@ -132,6 +161,7 @@ onMounted(async () => {
                   v-if="hasPermission('comment', '删除')"
                   type="danger"
                   :icon="Delete"
+                  link
                   >删除</el-button
                 >
               </template>
@@ -151,17 +181,30 @@ onMounted(async () => {
         />
       </div>
     </main>
+
+    <el-dialog v-model="editVisible" title="编辑评论" width="520" destroy-on-close>
+      <el-input v-model="editForm.content" type="textarea" :rows="5" maxlength="255" show-word-limit />
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitEdit">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.header-row {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
 .label-text {
   color: #606266;
-  width: 120px;
+  width: 72px;
 }
 
 .form-item {
-  margin-right: 20px;
+  margin-right: 12px;
 }
 
 .op-box {

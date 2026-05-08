@@ -50,10 +50,13 @@ public interface IActivityService extends IService<Activity> {
     Boolean edit(Integer id, Activity request);
     
     /**
-     * 分页条件查询
-     * @return
+     * @param creatorIdFilter 非空时仅查询该创建人的活动
      */
-    PageResult<List<ActivityVO>> queryPage(Integer pageNum, Integer pageSize, String title);
+    PageResult<List<ActivityVO>> queryPage(Integer pageNum, Integer pageSize, String title, Integer creatorIdFilter);
+
+    default PageResult<List<ActivityVO>> queryPage(Integer pageNum, Integer pageSize, String title) {
+        return queryPage(pageNum, pageSize, title, null);
+    }
     
     /**
      * 查询全部

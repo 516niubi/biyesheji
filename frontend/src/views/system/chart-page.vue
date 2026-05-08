@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import * as echarts from 'echarts'
+import { Trophy } from '@element-plus/icons-vue'
 import http from '@/utils/http'
 
 // 数据统计
@@ -8,7 +9,8 @@ const statistics = ref({
   heritageCount: 0,
   videoCount: 0,
   userCount: 0,
-  activityCount: 0
+  activityCount: 0,
+  inheritorCount: 0
 })
 
 // 图表实例
@@ -21,8 +23,9 @@ const hotChart = ref(null)
 const getStatistics = async () => {
   try {
     const response = await http.get('/statistics/overview')
-    if (response.code === 200) {
-      statistics.value = response.data
+    if (response.code === 200 && response.data) {
+      // 合并而非整体替换，避免后端未带 inheritorCount 等字段时模板显示为空
+      statistics.value = { ...statistics.value, ...response.data }
     }
   } catch (error) {
     console.error('获取统计数据失败:', error)
@@ -93,7 +96,7 @@ const initLineChart = (data) => {
       trigger: 'axis'
     },
     legend: {
-      data: ['非遗文物', '宣传视频', '注册用户', '活动数量'],
+      data: ['非遗文物', '宣传视频', '注册用户', '活动数量', '非遗传承人'],
       top: 30
     },
     grid: {
@@ -138,6 +141,13 @@ const initLineChart = (data) => {
         data: data.activityData,
         smooth: true,
         itemStyle: { color: '#ee6666' }
+      },
+      {
+        name: '非遗传承人',
+        type: 'line',
+        data: data.inheritorData ?? [],
+        smooth: true,
+        itemStyle: { color: '#9a60b4' }
       }
     ]
   }
@@ -326,6 +336,18 @@ onMounted(() => {
           <div class="card-value">{{ statistics.activityCount }}</div>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-icon inheritor">
+          <el-icon :size="24">
+            <Trophy />
+          </el-icon>
+        </div>
+        <div class="card-content">
+          <div class="card-title">非遗传承人</div>
+          <div class="card-value">{{ statistics.inheritorCount ?? 0 }}</div>
+        </div>
+      </div>
     </div>
 
     <!-- 图表区域 -->
@@ -360,7 +382,7 @@ onMounted(() => {
 
 .statistics-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 20px;
   margin-bottom: 30px;
   
@@ -406,6 +428,14 @@ onMounted(() => {
       &.activity {
         background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
       }
+
+      &.inheritor {
+        background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+
+        :deep(.el-icon) {
+          color: #fff;
+        }
+      }
     }
     
     .card-content {
@@ -449,7 +479,7 @@ onMounted(() => {
 
 @media (max-width: 1200px) {
   .statistics-cards {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
   
   .charts-container .chart-row {

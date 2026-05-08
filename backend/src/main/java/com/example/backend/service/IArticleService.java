@@ -54,10 +54,13 @@ public interface IArticleService extends IService<Article> {
         Boolean edit(Integer id, Article request);
 
         /**
-         * 分页条件查询
-         * @return
+         * @param creatorIdFilter 非空时仅查询该创建人的资讯
          */
-        PageResult<List<ArticleVO>> queryPage(Integer pageNum, Integer pageSize, String title, String intro);
+        PageResult<List<ArticleVO>> queryPage(Integer pageNum, Integer pageSize, String title, String intro, Integer creatorIdFilter);
+
+        default PageResult<List<ArticleVO>> queryPage(Integer pageNum, Integer pageSize, String title, String intro) {
+            return queryPage(pageNum, pageSize, title, intro, null);
+        }
 
         /**
          * 查询全部

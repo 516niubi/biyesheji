@@ -65,7 +65,6 @@ watch(
 
 <template>
   <div class="logo-container">
-    <img src="../../assets/logo.png" alt="logo" class="logo-icon" />
     <span class="system-name" v-if="!isCollapse">{{ Config.systemName }}</span>
   </div>
   <el-menu
@@ -113,15 +112,9 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 0 16px;
-  background-color: var(--el-menu-bg-color);
+  background-color: transparent;
   overflow: hidden;
   transition: all 0.3s;
-
-  .logo-icon {
-    width: 28px;
-    height: 28px;
-    margin-right: 8px;
-  }
 
   .system-name {
     color: var(--el-text-color-primary);
@@ -138,10 +131,17 @@ watch(
 .el-menu-custom {
   height: calc(100% - 60px);
   border-right: none;
+  --el-menu-bg-color: transparent;
+  --el-menu-hover-bg-color: rgba(107, 44, 40, 0.08);
 }
 
 :deep(.el-menu) {
   border-right: none;
+  background-color: transparent !important;
+}
+
+:deep(.el-menu--inline) {
+  background-color: transparent !important;
 }
 
 // 所有菜单项的基础样式

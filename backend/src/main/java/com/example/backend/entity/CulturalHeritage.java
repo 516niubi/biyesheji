@@ -55,6 +55,19 @@ public class CulturalHeritage implements Serializable {
     @ApiModelProperty(value = "浏览次数")
     private Integer viewCount;
 
+    /**
+     * 创建人后台账号ID（传承人）；平台管理员发布可为空
+     */
+    private Integer creatorId;
+
+    @ApiModelProperty(value = "发布人展示名（非表字段）")
+    @TableField(exist = false)
+    private String publisherName;
+
+    @ApiModelProperty(value = "发布人头像路径（非表字段）")
+    @TableField(exist = false)
+    private String publisherAvatar;
+
     @ApiModelProperty(value = "创建时间")
     @TableField(fill = FieldFill.INSERT)
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")

@@ -42,4 +42,9 @@ public class AddAdminRequest {
      * 个人介绍
      */
     private String profile;
+
+    /**
+     * 后台角色：admin 管理员，inheritor 非遗传承人
+     */
+    private String role;
 }

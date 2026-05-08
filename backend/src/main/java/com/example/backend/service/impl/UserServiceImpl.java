@@ -16,6 +16,7 @@ import com.example.backend.entity.request.user.AddUserRequest;
 import com.example.backend.entity.request.user.UpdatePassRequest;
 import com.example.backend.entity.vo.user.UserLoginVO;
 import com.example.backend.service.IUserService;
+import com.example.backend.utils.BackendAuthHelper;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
@@ -177,6 +178,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public Boolean updatePass(UpdatePassRequest request) {
+        User sessionUser = BackendAuthHelper.tryLoginFrontUser();
+        if (sessionUser == null || request.getUserId() == null
+                || !sessionUser.getId().equals(request.getUserId())) {
+            throw new BusinessException(CodeEnum.AUTH_ERROR, "请使用前台用户登录后修改本人密码");
+        }
         // 新密码
         String password = request.getPassword();
         // 旧密码
@@ -185,6 +191,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         Integer userId = request.getUserId();
         // 根据id查询用户信息
         User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(CodeEnum.NULL_ERROR, "用户不存在");
+        }
         // 校验旧密码是否正确
         if (!oldPass.equals(user.getPassword()))
             throw new BusinessException(CodeEnum.NULL_ERROR, "旧密码错误");

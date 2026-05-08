@@ -13,7 +13,7 @@ spring:
     # 连接池
     hikari:
       minimum-idle: 5 # 最小空闲连接数
-      maximum-pool-size: 10 # 最大活跃连接数
+      maximum-pool-size: 10 # 最大活跃连 dev接数
       connection-timeout: 30000 # 连接超时时间（毫秒）
       idle-timeout: 600000 # 空闲连接最大存活时间
       auto-commit: true # 此属性控制从池返回的连接的默认自动提交行为
@@ -32,6 +32,11 @@ mybatis-plus:
   configuration:
     mapUnderscoreToCamelCase: true # 是否开启自动驼峰命名规则，默认为true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 打印sql日志
+
+# 文件存储路径配置
+file:
+  upload:
+    path: C:/Users/21596/Desktop/Bishe/backend
 
 ############## Sa-Token 配置 (文档: https://sa-token.cc) ##############
 sa-token:

@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.example.backend.common.model.PageResult;
+import com.example.backend.utils.BackendAuthHelper;
 import com.example.backend.common.result.BaseResponse;
 import com.example.backend.common.result.Result;
 import com.example.backend.entity.vo.article.ArticleVO;
@@ -57,29 +59,46 @@ public class ArticleController {
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/page")
     public BaseResponse<PageResult<List<ArticleVO>>> page(
             @RequestParam Integer pageNum,
             @RequestParam Integer pageSize,
             @RequestParam(required = false) String title,
-            @RequestParam(required = false) String intro
+            @RequestParam(required = false) String intro,
+            @RequestParam(required = false) Integer creatorId
     ) {
-        PageResult<List<ArticleVO>> res = articleService.queryPage(pageNum, pageSize, title, intro);
+        PageResult<List<ArticleVO>> res = articleService.queryPage(pageNum, pageSize, title, intro, creatorId);
         return Result.success(res);
     }
 
+    @GetMapping("/manage/page")
+    public BaseResponse<PageResult<List<ArticleVO>>> managePage(
+            @RequestParam Integer pageNum,
+            @RequestParam Integer pageSize,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String intro
+    ) {
+        Integer scope = BackendAuthHelper.inheritorCreatorScopeOrNull();
+        PageResult<List<ArticleVO>> res = articleService.queryPage(pageNum, pageSize, title, intro, scope);
+        return Result.success(res);
+    }
+
+    @SaIgnore
     @GetMapping("/list")
     public BaseResponse<List<Article>> all() {
         List<Article> res = articleService.getAll();
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/getById")
     public BaseResponse<Article> getById(@RequestParam Integer id) {
         Article res = articleService.getByIdDetailAndIncreaseViewCount(id);
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/hot")
     @ApiOperation(value = "获取热门资讯")
     public BaseResponse<PageResult<List<ArticleVO>>> hot(

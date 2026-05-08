@@ -302,6 +302,7 @@ CREATE TABLE `notice`  (
   `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '标题',
   `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL COMMENT '内容',
+  `cover_url` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT '公告图片',
   `user_id` int(11) NULL DEFAULT NULL COMMENT '创建人ID',
   `create_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -311,7 +312,7 @@ CREATE TABLE `notice`  (
 -- ----------------------------
 -- Records of notice
 -- ----------------------------
-INSERT INTO `notice` VALUES (1, '第一条公告', '欢迎来到系统', 1, '2025-05-04 17:28:53', '2025-05-04 17:28:53');
+INSERT INTO `notice` VALUES (1, '第一条公告', '欢迎来到系统', NULL, 1, '2025-05-04 17:28:53', '2025-05-04 17:28:53');
 
 -- ----------------------------
 -- Table structure for user

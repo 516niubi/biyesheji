@@ -44,6 +44,17 @@ public class Video implements Serializable {
     @ApiModelProperty("浏览次数")
     private Integer viewCount;
 
+    @ApiModelProperty("创建人后台账号ID")
+    private Integer creatorId;
+
+    @ApiModelProperty("发布人展示名（非表字段）")
+    @TableField(exist = false)
+    private String publisherName;
+
+    @ApiModelProperty("发布人头像路径（非表字段）")
+    @TableField(exist = false)
+    private String publisherAvatar;
+
     @ApiModelProperty("创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date createTime;

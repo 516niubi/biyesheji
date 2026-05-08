@@ -4,19 +4,20 @@ import { useRoute } from 'vue-router'
 import http from '../../utils/http'
 import { getImageUrl } from '../../utils/system'
 import { ElMessage } from 'element-plus'
+import { Clock, View } from '@element-plus/icons-vue'
+import PublisherInheritorRow from '../../components/PublisherInheritorRow.vue'
 
 const route = useRoute()
 const loading = ref(false)
 const newsDetail = ref<any>({})
 
-// 获取新闻详情
 const getNewsDetail = async () => {
   const id = route.query.id
   if (!id) {
     ElMessage.error('参数错误')
     return
   }
-  
+
   loading.value = true
   try {
     const res = await http.get(`/article/getById?id=${id}`)
@@ -32,7 +33,6 @@ const getNewsDetail = async () => {
   }
 }
 
-// 格式化日期
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -51,26 +51,41 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="news-detail-container">
-    <el-card v-loading="loading" class="detail-card">
-      <template v-if="!loading && newsDetail.id">
-        <!-- 标题居中 -->
-        <div class="title-section">
-          <h1 class="news-title">{{ newsDetail.title }}</h1>
-        </div>
-        
-        <!-- 创建时间和浏览量 -->
-        <div class="meta-info">
-          <div class="meta-item">
-            <span>{{ formatDate(newsDetail.createTime) }}</span>
+  <div class="news-detail-page" v-loading="loading">
+    <template v-if="!loading && newsDetail.id">
+      <nav class="breadcrumb" aria-label="面包屑导航">
+        <router-link to="/front/home">首页</router-link>
+        <span class="sep">/</span>
+        <router-link to="/front/news">新闻资讯</router-link>
+        <span class="sep">/</span>
+        <span class="current">正文</span>
+      </nav>
+
+      <article class="article-shell">
+        <header class="article-header">
+          <p class="kicker">新闻资讯</p>
+          <h1 class="title">{{ newsDetail.title }}</h1>
+          <div class="meta-bar">
+            <div class="meta-pill meta-pill--publisher">
+              <PublisherInheritorRow
+                :inheritor-id="newsDetail.creatorId"
+                :name="newsDetail.publisherName || '平台'"
+                :avatar="newsDetail.publisherAvatar"
+                :size="40"
+              />
+            </div>
+            <span class="meta-pill" v-if="newsDetail.createTime">
+              <el-icon><Clock /></el-icon>
+              {{ formatDate(newsDetail.createTime) }}
+            </span>
+            <span class="meta-pill">
+              <el-icon><View /></el-icon>
+              {{ newsDetail.viewCount ?? 0 }} 次浏览
+            </span>
           </div>
-          <div class="meta-item">
-            <span>浏览量：{{ newsDetail.viewCount || 0 }}</span>
-          </div>
-        </div>
-        
-        <!-- 封面图片 -->
-        <div v-if="newsDetail.coverUrl" class="cover-section">
+        </header>
+
+        <div v-if="newsDetail.coverUrl" class="cover-wrap">
           <el-image
             :src="getImageUrl(newsDetail.coverUrl)"
             :alt="newsDetail.title"
@@ -81,178 +96,221 @@ onMounted(() => {
             :hide-on-click-modal="true"
           >
             <template #error>
-              <div class="image-error">
-                <span>图片加载失败</span>
-              </div>
+              <div class="image-error">图片加载失败</div>
             </template>
           </el-image>
         </div>
-        
-        <!-- 简介 -->
-        <div v-if="newsDetail.intro" class="intro-section">
-          <h3 class="section-title">简介</h3>
+
+        <section v-if="newsDetail.intro" class="block intro-block">
+          <h2 class="block-title">简介</h2>
           <p class="intro-text">{{ newsDetail.intro }}</p>
-        </div>
-        
-        <!-- 详细内容 -->
-        <div v-if="newsDetail.content" class="content-section">
-          <h3 class="section-title">详细内容</h3>
-          <div class="content-text" v-html="newsDetail.content"></div>
-        </div>
-      </template>
-      
-      <!-- 空状态 -->
-      <el-empty v-else-if="!loading" description="暂无数据" />
-    </el-card>
+        </section>
+
+        <section v-if="newsDetail.content" class="block content-block">
+          <h2 class="block-title">正文</h2>
+          <div class="prose" v-html="newsDetail.content"></div>
+        </section>
+      </article>
+    </template>
+
+    <div v-else-if="!loading" class="empty-wrap">
+      <el-empty description="暂无数据" />
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.news-detail-container {
-  padding: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  
-  .detail-card {
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    
-    .title-section {
-      text-align: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 2px solid #f0f0f0;
-      
-      .news-title {
-        font-size: 32px;
-        font-weight: bold;
-        color: #2c3e50;
-        margin: 0;
-        line-height: 1.4;
-      }
-    }
-    
-    .meta-info {
-      display: flex;
-      justify-content: center;
-      gap: 40px;
-      margin-bottom: 30px;
-      padding: 15px;
-      background: #f8f9fa;
-      border-radius: 8px;
-      
-      .meta-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #666;
-        font-size: 14px;
-        
-        .el-icon {
-          color: #409eff;
-        }
-      }
-    }
-    
-    .cover-section {
-      margin-bottom: 30px;
-      text-align: center;
-      
-      .cover-image {
-        max-width: 100%;
-        max-height: 400px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      }
-      
-      .image-error {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 200px;
-        background: #f5f5f5;
-        border-radius: 8px;
-        color: #999;
-        
-        .el-icon {
-          font-size: 48px;
-          margin-bottom: 10px;
-        }
-      }
-    }
-    
-    .intro-section,
-    .content-section {
-      margin-bottom: 30px;
-      
-      .section-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 15px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #e0e0e0;
-      }
-      
-      .intro-text {
-        font-size: 16px;
-        line-height: 1.8;
-        color: #555;
-        text-align: justify;
-        margin: 0;
-      }
-      
-      .content-text {
-        font-size: 15px;
-        line-height: 1.8;
-        color: #333;
-        text-align: justify;
-        
-        :deep(img) {
-          max-width: 100%;
-          height: auto;
-          border-radius: 4px;
-          margin: 10px 0;
-        }
-        
-        :deep(p) {
-          margin-bottom: 15px;
-        }
-        
-        :deep(h1, h2, h3, h4, h5, h6) {
-          margin: 20px 0 10px 0;
-          color: #2c3e50;
-        }
-      }
-    }
+.news-detail-page {
+  --accent: #c53d2e;
+  --ink: #1f1a17;
+  --muted: #5c534c;
+  --card: #ffffff;
+  --line: rgba(31, 26, 23, 0.08);
+  min-height: 100vh;
+  padding: 28px 20px 56px;
+  background: linear-gradient(180deg, #e8f0ec 0%, #f6f3ef 35%, #f8f9fa 100%);
+}
+
+.breadcrumb {
+  max-width: 880px;
+  margin: 0 auto 20px;
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+
+  a {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .sep {
+    opacity: 0.45;
+  }
+
+  .current {
+    color: var(--ink);
+    font-weight: 700;
   }
 }
 
-// 响应式设计
+.article-shell {
+  max-width: 880px;
+  margin: 0 auto;
+  background: var(--card);
+  border-radius: 20px;
+  padding: 36px 40px 44px;
+  box-shadow: 0 12px 40px rgba(31, 26, 23, 0.08);
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, #2d6a4f, #40916c);
+  }
+}
+
+.article-header {
+  margin-bottom: 28px;
+}
+
+.kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.title {
+  margin: 0 0 18px;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+}
+
+.meta-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--muted);
+  background: rgba(45, 106, 79, 0.08);
+  border: 1px solid var(--line);
+  font-weight: 500;
+
+  .el-icon {
+    color: var(--accent);
+  }
+
+  &--publisher {
+    border-radius: 14px;
+    padding: 10px 16px;
+    align-items: center;
+  }
+}
+
+.cover-wrap {
+  margin-bottom: 28px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+}
+
+.cover-image {
+  width: 100%;
+  max-height: 420px;
+  display: block;
+}
+
+.image-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  background: #f0f0f0;
+  color: #999;
+}
+
+.block {
+  margin-bottom: 28px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.block-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.intro-text {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--muted);
+}
+
+.prose {
+  font-size: 16px;
+  line-height: 1.9;
+  color: #3d3833;
+
+  :deep(img) {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+    margin: 16px 0;
+  }
+
+  :deep(p) {
+    margin: 16px 0;
+  }
+
+  :deep(h1, h2, h3, h4, h5, h6) {
+    color: var(--ink);
+    margin: 24px 0 12px;
+    font-weight: 700;
+  }
+}
+
+.empty-wrap {
+  max-width: 480px;
+  margin: 80px auto;
+}
+
 @media (max-width: 768px) {
-  .news-detail-container {
-    padding: 10px;
-    
-    .detail-card {
-      .title-section {
-        .news-title {
-          font-size: 24px;
-        }
-      }
-      
-      .meta-info {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
-      }
-      
-      .cover-section {
-        .cover-image {
-          max-height: 250px;
-        }
-      }
-    }
+  .article-shell {
+    padding: 24px 20px 32px;
+  }
+
+  .cover-image {
+    max-height: 260px;
   }
 }
 </style>

@@ -78,6 +78,13 @@ onMounted(async () => {
 
 <template>
   <div class="activity-page">
+    <section class="page-hero">
+      <div class="page-hero-inner">
+        <p class="page-hero-tag">活动中心</p>
+        <h1 class="page-hero-title">非遗主题活动</h1>
+        <p class="page-hero-desc">展览、研学与民俗体验一站汇总，发现身边的非遗温度。</p>
+      </div>
+    </section>
 
     <!-- 搜索表单 -->
     <div class="search-section">
@@ -148,9 +155,66 @@ onMounted(async () => {
 
 <style lang="scss" scoped>
 .activity-page {
+  --accent-color: #c53d2e;
+  --bg-primary: #ffffff;
+  --text-primary: #1f1a17;
+  --text-secondary: #5c534c;
+  --shadow-light: 0 8px 28px rgba(31, 26, 23, 0.08);
   min-height: 100vh;
   padding: 0;
 }
+
+.page-hero {
+  background: linear-gradient(120deg, #3d2914 0%, #6b3d2e 42%, #a85a3a 100%);
+  color: #fff;
+  padding: 40px 24px 48px;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: -80px;
+    top: -60px;
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    pointer-events: none;
+  }
+}
+
+.page-hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.page-hero-tag {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.page-hero-title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.page-hero-desc {
+  margin: 0;
+  max-width: 36em;
+  font-size: 15px;
+  line-height: 1.65;
+  opacity: 0.92;
+}
+
 // 搜索区域
 .search-section {
   background: var(--bg-primary);
@@ -159,6 +223,7 @@ onMounted(async () => {
   position: relative;
   z-index: 2;
   border-radius: 20px 20px 0 0;
+  margin-top: -20px;
   
   .search-form {
     max-width: 1200px;

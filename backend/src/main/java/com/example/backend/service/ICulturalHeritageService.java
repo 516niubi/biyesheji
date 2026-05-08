@@ -55,9 +55,18 @@ public interface ICulturalHeritageService extends IService<CulturalHeritage> {
 
         /**
          * 分页条件查询
-         * @return
+         * @param creatorIdFilter 非空时仅查询该创建人发布的文物（传承人工作台）
+         * @param categoryId      非空时仅查询该非遗类型（分类）下的文物
          */
-        PageResult<List<CulturalHeritageVO>> queryPage(Integer pageNum, Integer pageSize, String name);
+        PageResult<List<CulturalHeritageVO>> queryPage(Integer pageNum, Integer pageSize, String name, Integer creatorIdFilter, Integer categoryId);
+
+        default PageResult<List<CulturalHeritageVO>> queryPage(Integer pageNum, Integer pageSize, String name, Integer creatorIdFilter) {
+            return queryPage(pageNum, pageSize, name, creatorIdFilter, null);
+        }
+
+        default PageResult<List<CulturalHeritageVO>> queryPage(Integer pageNum, Integer pageSize, String name) {
+            return queryPage(pageNum, pageSize, name, null, null);
+        }
 
         /**
          * 查询全部

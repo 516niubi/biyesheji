@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import cn.dev33.satoken.annotation.SaIgnore;
 import com.example.backend.common.model.PageResult;
 import com.example.backend.common.result.BaseResponse;
 import com.example.backend.common.result.Result;
@@ -57,6 +58,7 @@ public class IchTypeController {
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/page")
     public BaseResponse<PageResult<List<IchTypeVO>>> page(
             @RequestParam Integer pageNum,
@@ -67,12 +69,14 @@ public class IchTypeController {
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/list")
     public BaseResponse<List<IchType>> all() {
         List<IchType> res = ichTypeService.getAll();
         return Result.success(res);
     }
 
+    @SaIgnore
     @GetMapping("/getById")
     public BaseResponse<IchType> getById(@RequestParam Integer id) {
         IchType res = ichTypeService.getByIdDetail(id);
