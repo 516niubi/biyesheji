@@ -31,3 +31,17 @@ build/
 
 ### VS Code ###
 .vscode/
+# 忽略前端依赖包（核心！解决警告）
+frontend/node_modules/
+
+# 忽略前端打包产物（可选，建议加）
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.*
+frontend/package-lock.json
+frontend/yarn.lock
+
+# 忽略后端打包产物（可选，补充）
+backend/target/
+backend/.env
